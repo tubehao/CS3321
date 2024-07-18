@@ -21,7 +21,7 @@ def get_response():
     pipeline_pure = current_app.config['MODEL_PURE']
     
     # 构建提示以生成Cypher查询语句
-    prompt = f"Our dataset contains a knowledge graph stored in a Neo4j database. With node including  rdfs__comment, rdfs__label, <elementId>, <id> and uri. Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```' \n \n for example, if the natural language query is 'Introduce basketball', the Cypher query should be like '```MATCH (n)-[r]-(neighbor) WHERE n.rdfs__comment CONTAINS 'basketball' OR n.rdfs__label CONTAINS 'basketball' RETURN n, r, neighbor LIMIT 25```'.\nNatural Language Query: {user_message}\n\n\n\nCypher Query:"
+    prompt = f"Our dataset contains a knowledge graph stored in a Neo4j database. With node including rdfs__label, rdfs__comment, <elementId>, <id> and uri. Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```' \n \n for example, if the natural language query is 'What's basketball', the Cypher query should be like '```MATCH (n)-[r]-(neighbor) WHERE n.rdfs__label CONTAINS 'Basketball' RETURN n, r, neighbor LIMIT 25```'.\nNatural Language Query: {user_message}\n\n\n\nCypher Query:"
     
     # 调用模型生成输出
     output = pipeline_prompt(prompt, max_new_tokens=100)
@@ -41,36 +41,54 @@ def get_response():
     with driver.session() as session:
         result = session.run(cypher_query)
         knowledge_list = []
+        graph_data = {"nodes": [], "edges": []}  # 初始化图表数据
         # 处理查询结果
         query_results = [record.data() for record in result]
         for record in query_results:
             knowledge = {}
             for key, record in record.items():
-                if type(record) == dict:# process the node
-                    knowledge[key] = {"comment": str(record.get('rdfs__comment')), "label": str(record.get('rdfs__label'))}
-                elif type(record) == tuple:# process the relationship
+                if isinstance(record, dict):  # 处理节点
+                    knowledge[key] = {
+                        "comment": str(record.get('rdfs__comment')),
+                        "label": str(record.get('rdfs__label'))
+                    }
+                    graph_data["nodes"].append({
+                        "id": record.get('elementId'),
+                        "label": str(record.get('rdfs__label')),
+                        "rdfs__comment": str(record.get('rdfs__comment'))  # 添加评论信息以便在前端显示
+                    })
+                elif isinstance(record, tuple):  # 处理关系
                     for item in record:
-                        if type(item) == dict:
+                        if isinstance(item, dict):
                             if key in knowledge:
-                                knowledge[key]['comment'] += ' '+str(item.get('rdfs__comment'))
-                                knowledge[key]['label'] += ' '+str(item.get('rdfs__label'))
+                                knowledge[key]['comment'] += ' ' + str(item.get('rdfs__comment'))
+                                knowledge[key]['label'] += ' ' + str(item.get('rdfs__label'))
                             else:
-                                knowledge[key] = {"comment": str(item.get('rdfs__comment')), "label": str(item.get('rdfs__label'))}
-                        else :
+                                knowledge[key] = {
+                                    "comment": str(item.get('rdfs__comment')),
+                                    "label": str(item.get('rdfs__label'))
+                                }
+                            graph_data["nodes"].append({
+                                "id": item.get('elementId'),
+                                "label": str(item.get('rdfs__label')),
+                                "rdfs__comment": str(item.get('rdfs__comment'))
+                            })
+                            # 假设关系中包含 startNode 和 endNode
+                            graph_data["edges"].append({
+                                "source": record[0].get('elementId'),
+                                "target": item.get('elementId')
+                            })
+                        else:
                             if key in knowledge:
-                                knowledge[key]['comment'] +=' '+ str(item)
+                                knowledge[key]['comment'] += ' ' + str(item)
                             else:
                                 knowledge[key] = {"comment": str(item), "label": ""}
             knowledge_list.append(knowledge)
     important_results = knowledge_list[:3]
     
-    
     # 构建提示以让LLM解决问题
     print(important_results)
-    # result_prompt = f"Knowledge: {important_results}\n\n Use the knowledge to answer the following question.  Don't contain the query result in your answer directly, you can just use it to help you. \n\n Question:{user_message}.\nAnswer:"
     result_prompt = f"Knowledge: {important_results}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
-    # result_prompt = f"The following knowledge is retrieved from yago and contains the related node and edge, n represents the related concept while r and neighbor represents its neighbor. Knowledge: {important_results}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
-
 
     final_output = pipeline_chat(result_prompt, max_new_tokens=200)
     solution = final_output[0]['generated_text'].strip()
@@ -83,6 +101,7 @@ def get_response():
     print("~~~~~~~~~~~~~~~~~~~~~")
     print(solution[len(result_prompt):])
     return jsonify({
-            "solution_part1": solution[len(result_prompt):],  # 第一部分
-            "solution_part2": pure_solution[len(pure_prompt):]   # 第二部分
-        })
+        "solution_part1": solution[len(result_prompt):],  # 第一部分
+        "solution_part2": pure_solution[len(pure_prompt):],  # 第二部分
+        "graph_data": graph_data  # 返回图表数据
+    })

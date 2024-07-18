@@ -44,6 +44,11 @@
         .message.bot .message-content .column {
             width: 48%;
         }
+        .graph-container {
+            width: 100%;
+            height: 400px;
+            margin-top: 20px;
+        }
     </style>
 {% endblock stylesheets %}
 
@@ -66,6 +71,7 @@
 {% block javascripts %}
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://gw.alipayobjects.com/os/lib/antv/g6/4.5.0/dist/g6.min.js"></script>
     <script>
         $(document).ready(function () {
             // 在页面加载完成后立即显示欢迎信息
@@ -96,11 +102,51 @@
                         contentType: 'application/json',
                         data: JSON.stringify({message: message}),
                         success: function(response) {
-                            var botMessageHtml = '<div class="message bot"><div class="message-content"><div class="column">' + marked.parse(response.solution_part1) + '</div><div class="column">' + marked.parse(response.solution_part2) + '</div></div></div>';
+                            var botMessageHtml = '<div class="message bot"><div class="message-content">';
+                            botMessageHtml += '<div class="column text-column">' + marked.parse(response.solution_part1) + '</div><div class="column text-column">' + marked.parse(response.solution_part2) + '</div></div></div>';
                             $('#chat-messages').append(botMessageHtml);
+
+                            if (response.graph_data) {
+                                var graphContainer = $('<div class="graph-container"></div>');
+                                $('#chat-messages').append(graphContainer);
+                                visualizeGraph(response.graph_data, graphContainer[0]);
+                            }
                         }
                     });
                 }
+            }
+
+            function visualizeGraph(graphData, container) {
+                const graph = new G6.Graph({
+                    container: container,
+                    width: container.offsetWidth,
+                    height: container.offsetHeight,
+                    layout: {
+                        type: 'force',
+                        linkDistance: 100,
+                    },
+                    defaultNode: {
+                        size: 20,
+                        color: '#5B8FF9',
+                        style: {
+                            label: {
+                                fontSize: 14
+                            }
+                        }
+                    },
+                    defaultEdge: {
+                        style: {
+                            stroke: '#e2e2e2',
+                        },
+                    },
+                });
+                graph.data(graphData);
+                graph.render();
+                window.onresize = () => {
+                    if (!graph || graph.get('destroyed')) return;
+                    if (!container || !container.scrollWidth || !container.scrollHeight) return;
+                    graph.changeSize(container.scrollWidth, container.scrollHeight);
+                };
             }
         });
     </script>
