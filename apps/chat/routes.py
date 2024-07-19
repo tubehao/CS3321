@@ -40,55 +40,13 @@ def get_response():
     driver = current_app.config['NEO4J_DRIVER']
     with driver.session() as session:
         result = session.run(cypher_query)
-        knowledge_list = []
-        graph_data = {"nodes": [], "edges": []}  # 初始化图表数据
-        # 处理查询结果
         query_results = [record.data() for record in result]
-        for record in query_results:
-            knowledge = {}
-            for key, record in record.items():
-                if isinstance(record, dict):  # 处理节点
-                    knowledge[key] = {
-                        "comment": str(record.get('rdfs__comment')),
-                        "label": str(record.get('rdfs__label'))
-                    }
-                    graph_data["nodes"].append({
-                        "id": record.get('elementId'),
-                        "label": str(record.get('rdfs__label')),
-                        "rdfs__comment": str(record.get('rdfs__comment'))  # 添加评论信息以便在前端显示
-                    })
-                elif isinstance(record, tuple):  # 处理关系
-                    for item in record:
-                        if isinstance(item, dict):
-                            if key in knowledge:
-                                knowledge[key]['comment'] += ' ' + str(item.get('rdfs__comment'))
-                                knowledge[key]['label'] += ' ' + str(item.get('rdfs__label'))
-                            else:
-                                knowledge[key] = {
-                                    "comment": str(item.get('rdfs__comment')),
-                                    "label": str(item.get('rdfs__label'))
-                                }
-                            graph_data["nodes"].append({
-                                "id": item.get('elementId'),
-                                "label": str(item.get('rdfs__label')),
-                                "rdfs__comment": str(item.get('rdfs__comment'))
-                            })
-                            # 假设关系中包含 startNode 和 endNode
-                            graph_data["edges"].append({
-                                "source": record[0].get('elementId'),
-                                "target": item.get('elementId')
-                            })
-                        else:
-                            if key in knowledge:
-                                knowledge[key]['comment'] += ' ' + str(item)
-                            else:
-                                knowledge[key] = {"comment": str(item), "label": ""}
-            knowledge_list.append(knowledge)
-    important_results = knowledge_list[:3]
-    
+
+    # 将查询结果转换为G6所需的数据格式
+    graph_data = parse_neo4j_results(query_results)
+
     # 构建提示以让LLM解决问题
-    print(important_results)
-    result_prompt = f"Knowledge: {important_results}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
+    result_prompt = f"Knowledge: {graph_data}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
 
     final_output = pipeline_chat(result_prompt, max_new_tokens=200)
     solution = final_output[0]['generated_text'].strip()
@@ -98,10 +56,45 @@ def get_response():
     pure_solution = pure_output[0]['generated_text'].strip()
     
     # 返回解决方案
-    print("~~~~~~~~~~~~~~~~~~~~~")
-    print(solution[len(result_prompt):])
     return jsonify({
         "solution_part1": solution[len(result_prompt):],  # 第一部分
         "solution_part2": pure_solution[len(pure_prompt):],  # 第二部分
         "graph_data": graph_data  # 返回图表数据
     })
+
+def parse_neo4j_results(results):
+    graph_data = {"nodes": [], "edges": []}
+    node_ids = set()
+
+    for record in results:
+        node = record['n']
+        relationship = record['r']
+        neighbor = record['neighbor']
+
+        # 添加节点
+        if node['uri'] not in node_ids:
+            graph_data['nodes'].append({
+                "id": node['uri'],
+                "label": node.get('rdfs__label', 'Unknown'),
+                "comment": node.get('rdfs__comment', ''),
+                "image": node.get('sch__image', '')
+            })
+            node_ids.add(node['uri'])
+
+        if neighbor['uri'] not in node_ids:
+            graph_data['nodes'].append({
+                "id": neighbor['uri'],
+                "label": neighbor.get('rdfs__label', 'Unknown'),
+                "comment": neighbor.get('rdfs__comment', ''),
+                "image": neighbor.get('sch__image', '')
+            })
+            node_ids.add(neighbor['uri'])
+
+        # 添加边
+        graph_data['edges'].append({
+            "source": node['uri'],
+            "target": neighbor['uri'],
+            "type": relationship[1]
+        })
+
+    return graph_data
