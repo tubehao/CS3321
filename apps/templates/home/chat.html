@@ -33,6 +33,7 @@
         }
         .message.bot {
             width: 70%;
+            display: flex;
         }
         .message.bot .message-content {
             background-color: #f1f0f0;
@@ -40,14 +41,17 @@
             justify-content: space-between;
             padding: 10px;
             border-radius: 10px;
+            width: 100%;
         }
         .message.bot .message-content .column {
             width: 48%;
         }
         .graph-container {
             width: 100%;
-            height: 400px;
-            margin-top: 20px;
+            height: 300px; /* Adjust the height as needed */
+        }
+        .text-column {
+            width: 48%;
         }
     </style>
 {% endblock stylesheets %}
@@ -103,13 +107,19 @@
                         data: JSON.stringify({message: message}),
                         success: function(response) {
                             var botMessageHtml = '<div class="message bot"><div class="message-content">';
-                            botMessageHtml += '<div class="column text-column">' + marked.parse(response.solution_part1) + '</div><div class="column text-column">' + marked.parse(response.solution_part2) + '</div></div></div>';
+                            
+                            botMessageHtml += '<div class="column text-column">' + marked.parse(response.solution_part1);
+                            if (response.graph_data.nodes.length > 0) {
+                                botMessageHtml += '<div class="graph-container" id="graph-' + Date.now() + '"></div>';
+                            }
+                            botMessageHtml += '</div><div class="column text-column">' + marked.parse(response.solution_part2) + '</div></div></div>';
+                            
                             $('#chat-messages').append(botMessageHtml);
 
-                            if (response.graph_data) {
-                                var graphContainer = $('<div class="graph-container"></div>');
-                                $('#chat-messages').append(graphContainer);
-                                visualizeGraph(response.graph_data, graphContainer[0]);
+                            if (response.graph_data.nodes.length > 0) {
+                                var containerId = "graph-" + Date.now();
+                                var container = document.getElementById(containerId);
+                                visualizeGraph(response.graph_data, container);
                             }
                         }
                     });
