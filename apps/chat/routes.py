@@ -6,9 +6,17 @@ import re
 
 blueprint = Blueprint('chat', __name__, url_prefix='/chat')
 
-@blueprint.route('/')
+@blueprint.route('/chat.html')
 def index():
-    return render_template('chat.html')
+    databases = current_app.config['DATABASES']
+    return render_template('/home/chat.html', databases=databases)
+
+@blueprint.route('/set_database', methods=['POST'])
+def set_database():
+    data = request.get_json()
+    selected_database = data['database']
+    current_app.config['CURRENT_DATABASE'] = selected_database
+    return jsonify({'status': 'success', 'selected_database': selected_database})
 
 @blueprint.route('/get_response', methods=['POST'])
 def get_response():
@@ -20,9 +28,12 @@ def get_response():
     pipeline_chat = current_app.config['MODEL_SOLUTION']
     pipeline_pure = current_app.config['MODEL_PURE']
     
-    # 构建提示以生成Cypher查询语句
-    prompt = f"Our dataset contains a knowledge graph stored in a Neo4j database. With node including rdfs__label, rdfs__comment, <elementId>, <id> and uri. Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```' \n \n for example, if the natural language query is 'What's basketball', the Cypher query should be like '```MATCH (n)-[r]-(neighbor) WHERE n.rdfs__label CONTAINS 'Basketball' RETURN n, r, neighbor LIMIT 25```'.\nNatural Language Query: {user_message}\n\n\n\nCypher Query:"
+    current_database = current_app.config.get('CURRENT_DATABASE', 'yago')
+    query_prompt = current_app.config['QUERY_PROMPT'][current_database]
     
+    # 构建提示以生成Cypher查询语句
+    prompt = f"Our dataset contains a {query_prompt['type']} stored in a Neo4j database. With node including {query_prompt['label']} and uri. Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```' \n \n for example,{query_prompt['example']}.\nNatural Language Query: {user_message}\n\n\n\nCypher Query:"
+    print(prompt)
     # 调用模型生成输出
     output = pipeline_prompt(prompt, max_new_tokens=100)
     generated_text = output[0]['generated_text'].strip()
@@ -41,7 +52,7 @@ def get_response():
     with driver.session() as session:
         result = session.run(cypher_query)
         query_results = [record.data() for record in result]
-
+    print(query_results)
     # 将查询结果转换为G6所需的数据格式
     graph_data = parse_neo4j_results(query_results)
 
@@ -68,20 +79,20 @@ def parse_neo4j_results(results):
 
     for record in results:
         node = record['n']
-        relationship = record['r']
-        neighbor = record['neighbor']
+        relationship = record.get('r')
+        neighbor = record.get('neighbor')
 
         # 添加节点
         if node['uri'] not in node_ids:
             graph_data['nodes'].append({
-                "id": node['uri'],
+                "id": node.get('uri'),
                 "label": node.get('rdfs__label', 'Unknown'),
                 "comment": node.get('rdfs__comment', ''),
                 "image": node.get('sch__image', '')
             })
-            node_ids.add(node['uri'])
+            node_ids.add(node.get('uri'))
 
-        if neighbor['uri'] not in node_ids:
+        if neighbor['uri'] and neighbor['uri'] not in node_ids:
             graph_data['nodes'].append({
                 "id": neighbor['uri'],
                 "label": neighbor.get('rdfs__label', 'Unknown'),
