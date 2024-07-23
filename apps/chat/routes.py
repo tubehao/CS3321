@@ -1,5 +1,3 @@
-# chat/routes.py
-
 from flask import Blueprint, request, jsonify, current_app, render_template
 from neo4j import GraphDatabase
 import re
@@ -52,9 +50,10 @@ def get_response():
     with driver.session() as session:
         result = session.run(cypher_query)
         query_results = [record.data() for record in result]
-    print(query_results)
+    # print(query_results)
     # 将查询结果转换为G6所需的数据格式
     graph_data = parse_neo4j_results(query_results)
+    print(graph_data)
 
     # 构建提示以让LLM解决问题
     result_prompt = f"Knowledge: {graph_data}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
@@ -79,33 +78,51 @@ def parse_neo4j_results(results):
 
     for record in results:
         node = record['n']
+        node_uri = node.get('uri', '')
+        node_label = node.get('rdfs__label', node_uri)
+        node_comment = node.get('rdfs__comment', '')
+        node_year_of_publication = node.get('ns2__yearOfPublication', None)
+        node_published_in = node.get('ns2__publishedIn', None)
+        node_title = node.get('ns2__title', None)
+        
+        # 添加节点
+        # if node_uri not in node_ids:
+        node_data = {
+            "id": node_uri,
+            "uri": node_uri,
+            "label": node_label,
+            "comment": node_comment,
+            "year_of_publication": node_year_of_publication,
+            "published_in": node_published_in,
+            "title": node_title,
+        }
+        graph_data['nodes'].append(node_data)
+        # node_ids.add(node_uri)
+
+        # 处理关系和邻居节点（如果存在）
         relationship = record.get('r')
         neighbor = record.get('neighbor')
 
-        # 添加节点
-        if node['uri'] not in node_ids:
-            graph_data['nodes'].append({
-                "id": node.get('uri'),
-                "label": node.get('rdfs__label', 'Unknown'),
-                "comment": node.get('rdfs__comment', ''),
-                "image": node.get('sch__image', '')
-            })
-            node_ids.add(node.get('uri'))
+        if relationship and neighbor:
+            neighbor_uri = neighbor.get('uri', '')
+            neighbor_label = neighbor.get('rdfs__label', neighbor_uri)
+            neighbor_comment = neighbor.get('rdfs__comment', '')
+            neighbor_image = neighbor.get('sch__image', neighbor.get('ns2__image', ''))
 
-        if neighbor['uri'] and neighbor['uri'] not in node_ids:
-            graph_data['nodes'].append({
-                "id": neighbor['uri'],
-                "label": neighbor.get('rdfs__label', 'Unknown'),
-                "comment": neighbor.get('rdfs__comment', ''),
-                "image": neighbor.get('sch__image', '')
-            })
-            node_ids.add(neighbor['uri'])
+            # 添加邻居节点
+            neighbor_data = {
+                "id": neighbor_uri,
+                "label": neighbor_label,
+                "comment": neighbor_comment,
+                "image": neighbor_image
+            }
+            graph_data['nodes'].append(neighbor_data)
 
-        # 添加边
-        graph_data['edges'].append({
-            "source": node['uri'],
-            "target": neighbor['uri'],
-            "type": relationship[1]
-        })
+            # 添加边
+            graph_data['edges'].append({
+                "source": node_uri, 
+                "target": neighbor_uri,
+                "type": relationship[1]  # 假设relationship是一个三元组 (start_node, relationship_type, end_node)
+            })
 
     return graph_data

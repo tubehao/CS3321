@@ -4,6 +4,7 @@ import re
 import os
 from werkzeug.utils import secure_filename
 import csv
+import subprocess
 
 blueprint = Blueprint('table', __name__, url_prefix='/table')
 
@@ -32,24 +33,34 @@ def upload_file():
         file.save(file_path)
         print("saved")
         try:
-            import_to_neo4j(file_path)
+            rdf_file_path = copy_file_to_docker(file_path)
+            import_to_neo4j(rdf_file_path)
             return jsonify(success=True)
         except Exception as e:
             return jsonify(success=False, message=str(e))
     return jsonify(success=False, message="File not allowed")
 
 def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'csv'}
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'ttl'}
+
 
 def import_to_neo4j(file_path):
     driver = current_app.config['NEO4J_DRIVER']
+
+    import_query = """
+    CALL n10s.rdf.import.fetch("file://{rdf_file_path}", "Turtle")
+    """.format(rdf_file_path=file_path)
+    
     with driver.session() as session:
-        with open(file_path, 'r') as f:
-            reader = csv.reader(f)
-            for row in reader:
-                pass
-                # Example query to create nodes and relationships
-                # query = """
-                # CREATE (n:Node {name: $name})
-                # """
-                # session.run(query, name=row[0])
+        result = session.run(import_query)
+        for record in result:
+            print(record)
+
+def copy_file_to_docker(file_path, docker_container_name = 'yago', target_path = '/var/lib/neo4j/import'):
+    docker_cp_command = ["docker", "cp", file_path, f"{docker_container_name}:{target_path}"]
+    try:
+        subprocess.run(docker_cp_command, check=True)
+        print("File copied to Docker container successfully.")
+        return target_path
+    except subprocess.CalledProcessError as e:
+        print(f"Failed to copy file to Docker container: {e}")
