@@ -141,19 +141,19 @@
                         success: function(response) {
                             var botMessageHtml = '<div class="message bot"><div class="message-content">';
                             
-                            botMessageHtml += '<div class="column text-column">' + marked.parse(response.solution_part1);
-                            if (response.graph_data.nodes.length > 0) {
-                                botMessageHtml += '<div class="graph-container" id="graph-' + Date.now() + '"></div>';
-                            }
-                            botMessageHtml += '</div><div class="column text-column">' + marked.parse(response.solution_part2) + '</div></div></div>';
-                            
-                            $('#chat-messages').append(botMessageHtml);
+                                botMessageHtml += '<div class="column text-column">' + marked.parse(response.solution_part1);
+                                if (response.graph_data.nodes.length > 0) {
+                                    var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
+                                    botMessageHtml += '<div class="graph-container" id="' + graphId + '"></div>';
+                                }
+                                botMessageHtml += '</div><div class="column text-column">' + marked.parse(response.solution_part2) + '</div></div></div>';
 
-                            if (response.graph_data.nodes.length > 0) {
-                                var containerId = "graph-" + Date.now();
-                                var container = document.getElementById(containerId);
-                                visualizeGraph(response.graph_data, container);
-                            }
+                                $('#chat-messages').append(botMessageHtml);
+
+                                if (response.graph_data.nodes.length > 0) {
+                                    var container = document.getElementById(graphId); // 使用之前生成的时间戳ID
+                                    visualizeGraph(response.graph_data, container);
+                                }
                         }
                     });
                 }
