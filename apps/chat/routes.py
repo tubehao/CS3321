@@ -22,9 +22,9 @@ def get_response():
     user_message = data['message']
     
     # 使用初始化后的模型
-    # pipeline_prompt = current_app.config['MODEL_PIPELINE']
-    # pipeline_chat = current_app.config['MODEL_SOLUTION']
-    # pipeline_pure = current_app.config['MODEL_PURE']
+    pipeline_prompt = current_app.config['MODEL_PIPELINE']
+    pipeline_chat = current_app.config['MODEL_SOLUTION']
+    pipeline_pure = current_app.config['MODEL_PURE']
     
     current_database = current_app.config.get('CURRENT_DATABASE', 'yago')
     query_prompt = current_app.config['QUERY_PROMPT'][current_database]
@@ -35,22 +35,25 @@ def get_response():
     # 调用模型生成输出
     # output = pipeline_prompt(prompt, max_new_tokens=100)
     # generated_text = output[0]['generated_text'].strip()
+    generated_text = get_model_response(pipeline_prompt, prompt)
     
-    # # 使用正则表达式提取用```包裹的Cypher查询
-    # match = re.search(r'```(.*?)```', generated_text[len(prompt):], re.DOTALL)
-    # if match:
-    #     cypher_query = match.group(1).strip()
-    #     print("~~~~~~~~~~~~~~~~~~~~~")
-    #     print(cypher_query)
-    # else:
-    #     cypher_query = "MATCH (n) RETURN n LIMIT 1"  # 默认查询语句，如果没有匹配到
-    cypher_query = "MATCH (n)-[r]-(neighbor) WHERE n.rdfs__label CONTAINS 'Basketball' RETURN n, r, neighbor LIMIT 25"
+    # 使用正则表达式提取用```包裹的Cypher查询
+    match = re.search(r'```(.*?)```', generated_text[len(prompt):], re.DOTALL)
+    if match:
+        cypher_query = match.group(1).strip()
+        print("~~~~~~~~~~~~~~~~~~~~~")
+        print(cypher_query)
+        driver = current_app.config['NEO4J_DRIVER']
+        with driver.session() as session:
+            result = session.run(cypher_query)
+            query_results = [record.data() for record in result]
+    else:
+        # cypher_query = "MATCH (n) RETURN n LIMIT 1"  # 默认查询语句，如果没有匹配到
+        query_results = []
+    # cypher_query = "MATCH (n)-[r]-(neighbor) WHERE n.rdfs__label CONTAINS 'Basketball' RETURN n, r, neighbor LIMIT 25"
 
     # 使用生成的Cypher查询语句在Neo4j中查询
-    driver = current_app.config['NEO4J_DRIVER']
-    with driver.session() as session:
-        result = session.run(cypher_query)
-        query_results = [record.data() for record in result]
+    
     # print(query_results)
     # 将查询结果转换为G6所需的数据格式
     graph_data = parse_neo4j_results(query_results)
@@ -61,17 +64,28 @@ def get_response():
 
     # final_output = pipeline_chat(result_prompt, max_new_tokens=200)
     # solution = final_output[0]['generated_text'].strip()
+    solution = get_model_response(pipeline_chat, result_prompt)
 
     pure_prompt = f"Address the following question. \n\n Question:{user_message}.Answer:"
     # pure_output = pipeline_pure(pure_prompt, max_new_tokens=200)
     # pure_solution = pure_output[0]['generated_text'].strip()
+    pure_solution = get_model_response(pipeline_pure, pure_prompt)
     
     # 返回解决方案
     return jsonify({
-        "solution_part1": "1111",#solution[len(result_prompt):],  # 第一部分
-        "solution_part2": '1111', #pure_solution[len(pure_prompt):],  # 第二部分
+        "solution_part1": solution,  # 第一部分
+        "solution_part2": pure_solution,  # 第二部分
         "graph_data": graph_data  # 返回图表数据
     })
+
+def get_model_response(pipeline, prompt):
+    if "llama" in current_app.config["MODEL_ID"]:
+        output = pipeline(prompt, max_new_tokens=200)
+        generated_text = output[0]['generated_text'].strip()
+        return generated_text[len(prompt):]
+    elif "gpt" in current_app.config["MODEL_ID"]:
+        return pipeline(prompt)
+
 
 def parse_neo4j_results(results):
     graph_data = {"nodes": [], "edges": []}

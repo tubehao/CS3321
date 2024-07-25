@@ -7,6 +7,8 @@ from importlib import import_module
 import transformers
 import os
 from neo4j import GraphDatabase
+from langchain_openai import OpenAI
+from langchain_huggingface import ChatHuggingFace
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -38,25 +40,31 @@ def configure_database(app):
         db.session.remove()
 
 def initialize_model(app):
-    model_id = "meta-llama/Meta-Llama-3-8B"
-    app.config['MODEL_PIPELINE'] = transformers.pipeline(
-        "text-generation",
-        model=model_id,
-        tokenizer=model_id,
-        device=0  # 如果没有GPU，设置为-1
-    )
-    app.config['MODEL_SOLUTION'] = transformers.pipeline(
-        "text-generation",
-        model=model_id,
-        tokenizer=model_id,
-        device=2  # 如果没有GPU，设置为-1
-    )
-    app.config['MODEL_PURE'] = transformers.pipeline(
-        "text-generation",
-        model=model_id,
-        tokenizer=model_id,
-        device=1  # 如果没有GPU，设置为-1
-    )
+    model_id = app.config['MODEL_ID']
+    if "llama" in model_id:
+        app.config['MODEL_PIPELINE'] = ChatHuggingFace(
+            "text-generation",
+            model=model_id,
+            tokenizer=model_id,
+            device=0  # 如果没有GPU，设置为-1
+        )
+        app.config['MODEL_SOLUTION'] = ChatHuggingFace(
+            "text-generation",
+            model=model_id,
+            tokenizer=model_id,
+            device=2  # 如果没有GPU，设置为-1
+        )
+        app.config['MODEL_PURE'] = ChatHuggingFace(
+            "text-generation",
+            model=model_id,
+            tokenizer=model_id,
+            device=1  # 如果没有GPU，设置为-1
+        )
+    elif "gpt" in model_id:
+        api_key = app.config['OPENAI_API_KEY']
+        app.config['MODEL_PIPELINE'] = OpenAI(api_key=api_key)
+        app.config['MODEL_SOLUTION'] = OpenAI(api_key=api_key)
+        app.config['MODEL_PURE'] = OpenAI(api_key=api_key)
 
 def initialize_neo4j(app):
     uri = "bolt://localhost:7687"  # 根据需要替换为您的实际地址
