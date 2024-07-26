@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, render_template
 from neo4j import GraphDatabase
 import re
-
+import json
 blueprint = Blueprint('chat', __name__, url_prefix='/chat')
 
 @blueprint.route('/chat.html')
@@ -38,15 +38,19 @@ def get_response():
     generated_text = get_model_response(pipeline_prompt, prompt)
     
     # 使用正则表达式提取用```包裹的Cypher查询
-    match = re.search(r'```(.*?)```', generated_text[len(prompt):], re.DOTALL)
+    match = re.search(r'```(.*?)```', generated_text, re.DOTALL)
     if match:
         cypher_query = match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~")
         print(cypher_query)
         driver = current_app.config['NEO4J_DRIVER']
-        with driver.session() as session:
-            result = session.run(cypher_query)
-            query_results = [record.data() for record in result]
+        try:
+            with driver.session() as session:
+                result = session.run(cypher_query, timeout=10)  # 设置超时时间为10秒
+                query_results = [record.data() for record in result]
+        except:
+            # logging.error(f"Query timed out or service unavailable: {e}")
+            query_results = []
     else:
         # cypher_query = "MATCH (n) RETURN n LIMIT 1"  # 默认查询语句，如果没有匹配到
         query_results = []
@@ -60,7 +64,8 @@ def get_response():
     print(graph_data)
 
     # 构建提示以让LLM解决问题
-    result_prompt = f"Knowledge: {graph_data}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
+    knowledge = str(graph_data)
+    result_prompt = f"Knowledge: {knowledge[0:4000]}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
 
     # final_output = pipeline_chat(result_prompt, max_new_tokens=200)
     # solution = final_output[0]['generated_text'].strip()
@@ -70,12 +75,28 @@ def get_response():
     # pure_output = pipeline_pure(pure_prompt, max_new_tokens=200)
     # pure_solution = pure_output[0]['generated_text'].strip()
     pure_solution = get_model_response(pipeline_pure, pure_prompt)
-    
+    visualize_data = get_model_response(pipeline_pure, f"""Change the answer to the format that I can visualize by G6 such as {{
+                            "nodes": [{{ "id": "node1" }}, {{ "id": "node2" }}],
+                            "edges": [{{ "source": "node1", "target": "node2" }}]
+                            }}. your response should be able to convert by eval function in python. Answer: {solution}""")
+    print(visualize_data)
+    try:
+        visualize_data_dict = eval(visualize_data)
+        if isinstance(visualize_data_dict, dict) and all(isinstance(v, list) and all(isinstance(i, dict) for i in v) for v in visualize_data_dict.values()):
+            visualize_data = visualize_data_dict
+        else:
+            raise ValueError("Generated data is not in the expected format.")
+    except Exception as e:
+        print(f"Error parsing visualize_data: {e}")
+        visualize_data = {}
     # 返回解决方案
+
+    print(type(visualize_data["nodes"]))
     return jsonify({
         "solution_part1": solution,  # 第一部分
         "solution_part2": pure_solution,  # 第二部分
-        "graph_data": graph_data  # 返回图表数据
+        "graph_data": graph_data,  # 返回图表数据
+        "visualize_data": visualize_data  # 返回可视化数据
     })
 
 def get_model_response(pipeline, prompt):
@@ -84,7 +105,7 @@ def get_model_response(pipeline, prompt):
         generated_text = output[0]['generated_text'].strip()
         return generated_text[len(prompt):]
     elif "gpt" in current_app.config["MODEL_ID"]:
-        return pipeline(prompt)
+        return pipeline(prompt, max_tokens=2000)
 
 
 def parse_neo4j_results(results):
@@ -103,14 +124,14 @@ def parse_neo4j_results(results):
         # 添加节点
         # if node_uri not in node_ids:
         node_data = {
-            "id": node_uri,
-            "uri": node_uri,
-            "label": node_label,
-            "data": node_label,
+            "id": node_label,
+            # "uri": node_uri,
+            # "label": node_label,
+            # "data": node_label,
             "comment": node_comment,
-            "year_of_publication": node_year_of_publication,
-            "published_in": node_published_in,
-            "title": node_title,
+            # "year_of_publication": node_year_of_publication,
+            # "published_in": node_published_in,
+            # "title": node_title,
         }
         graph_data['nodes'].append(node_data)
         # node_ids.add(node_uri)
@@ -123,14 +144,14 @@ def parse_neo4j_results(results):
             neighbor_uri = neighbor.get('uri', '')
             neighbor_label = neighbor.get('rdfs__label', neighbor_uri)
             neighbor_comment = neighbor.get('rdfs__comment', '')
-            neighbor_image = neighbor.get('sch__image', neighbor.get('ns2__image', ''))
+            # neighbor_image = neighbor.get('sch__image', neighbor.get('ns2__image', ''))
 
             # 添加邻居节点
             neighbor_data = {
-                "id": neighbor_uri,
-                "label": neighbor_label,
+                "id": neighbor_label,
+                # "label": neighbor_label,
                 "comment": neighbor_comment,
-                "image": neighbor_image
+                # "image": neighbor_image
             }
             graph_data['nodes'].append(neighbor_data)
 

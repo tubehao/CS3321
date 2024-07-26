@@ -149,19 +149,38 @@
                     success: function(response) {
                         var botMessageHtml = '<div class="message bot"><div class="message-content">';
                         
-                            botMessageHtml += '<div class="column text-column">' + marked.parse(response.solution_part1);
+                            botMessageHtml += '<div class="column text-column"> <h2> Our Answer </h2>';
                             if (response.graph_data.nodes.length > 0) {
                                 var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
                                 botMessageHtml += '<div class="graph-container" id="' + graphId + '"></div>';
                             }
-                            botMessageHtml += '</div><div class="column text-column">' + marked.parse(response.solution_part2) + '</div></div></div>';
+                            botMessageHtml += marked.parse(response.solution_part1);
+                            if (response.visualize_data.nodes.length > 0) {
+                                var visualID = "graph-" + Date.now()+1; // 生成一个时间戳ID
+                                botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
+                            }
+                            botMessageHtml += '</div><div class="column text-column"> <h2> Normal </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
 
                             $('#chat-messages').append(botMessageHtml);
 
+                            // 确保元素已被添加到 DOM 中后再执行 visualizeGraph
                             if (response.graph_data.nodes.length > 0) {
-                                var container = document.getElementById(graphId); // 使用之前生成的时间戳ID
-                                visualizeGraph(response.graph_data, container);
+                                setTimeout(function() {
+                                    var container = document.getElementById(graphId);
+                                    visualizeGraph(response.graph_data, container);
+                                }, 0);
                             }
+
+                            if (response.visualize_data.nodes.length > 0) {
+                                setTimeout(function() {
+                                    var container = document.getElementById(visualID);
+                                    visualizeGraph(response.visualize_data, container);
+                                }, 0);
+                            }
+
+                            // if (response.graph_data.nodes.length > 0) {
+                                
+                            // }
                     }
                 });
             }
@@ -171,6 +190,7 @@
             const graph = new G6.Graph({
                 container: container,
                 width: container.offsetWidth,
+                
                 height: container.offsetHeight,
                 layout: {
                     type: 'force',
@@ -182,15 +202,17 @@
                 node: {
                     size: 20,
                     color: '#5B8FF9',
-                    labelCfg: {
-                        style: {
-                            fill: '#000', // 标签字体颜色
-                            fontSize: 12, // 标签字体大小
-                        },
-                        position: 'bottom', // 标签位置，可选值有 'top', 'bottom', 'left', 'right' 等
-                    },
+                    
+                    // labelCfg: {
+                    //     style: {
+                    //         fill: '#000', // 标签字体颜色
+                    //         fontSize: 12, // 标签字体大小
+                    //     },
+                    //     position: 'bottom', // 标签位置，可选值有 'top', 'bottom', 'left', 'right' 等
+                    // },
                     style: {
                         // iconText: (d) => d.data,
+                        labelText: (d) => d.id,
                     }
                     
                 },
@@ -217,11 +239,11 @@
 
             graph.setData(graphData);
             graph.render();
-            window.onresize = () => {
-                if (!graph || graph.get('destroyed')) return;
-                if (!container || !container.scrollWidth || !container.scrollHeight) return;
-                graph.changeSize(container.scrollWidth, container.scrollHeight);
-            };
+            // window.onresize = () => {
+            //     if (!graph || graph.get('destroyed')) return;
+            //     if (!container || !container.scrollWidth || !container.scrollHeight) return;
+            //     graph.changeSize(container.scrollWidth, container.scrollHeight);
+            // };
         }
     });
 </script>
