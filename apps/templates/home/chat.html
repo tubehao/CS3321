@@ -149,11 +149,12 @@
                     success: function(response) {
                         var botMessageHtml = '<div class="message bot"><div class="message-content">';
                         
-                            botMessageHtml += '<div class="column text-column"> <h2> Our Answer </h2>';
+                            botMessageHtml += '<div class="column text-column"> <h2> Our Answer </h2><h3> Knowledge</h3>';
                             if (response.graph_data.nodes.length > 0) {
                                 var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
                                 botMessageHtml += '<div class="graph-container" id="' + graphId + '"></div>';
                             }
+                            botMessageHtml += '<h3> Solution</h3>';
                             botMessageHtml += marked.parse(response.solution_part1);
                             if (response.visualize_data.nodes.length > 0) {
                                 var visualID = "graph-" + Date.now()+1; // 生成一个时间戳ID

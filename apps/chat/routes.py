@@ -91,7 +91,7 @@ def get_response():
         visualize_data = {}
     # 返回解决方案
 
-    print(type(visualize_data["nodes"]))
+    # print(type(visualize_data["nodes"]))
     return jsonify({
         "solution_part1": solution,  # 第一部分
         "solution_part2": pure_solution,  # 第二部分
@@ -115,7 +115,7 @@ def parse_neo4j_results(results):
     for record in results:
         node = record['n']
         node_uri = node.get('uri', '')
-        node_label = node.get('rdfs__label', node_uri)
+        node_label = node.get('ns0__label', node_uri)
         node_comment = node.get('rdfs__comment', '')
         node_year_of_publication = node.get('ns2__yearOfPublication', None)
         node_published_in = node.get('ns2__publishedIn', None)
@@ -142,7 +142,7 @@ def parse_neo4j_results(results):
 
         if relationship and neighbor:
             neighbor_uri = neighbor.get('uri', '')
-            neighbor_label = neighbor.get('rdfs__label', neighbor_uri)
+            neighbor_label = neighbor.get('ns0__label', neighbor_uri)
             neighbor_comment = neighbor.get('rdfs__comment', '')
             # neighbor_image = neighbor.get('sch__image', neighbor.get('ns2__image', ''))
 
@@ -157,8 +157,8 @@ def parse_neo4j_results(results):
 
             # 添加边
             graph_data['edges'].append({
-                "source": node_uri, 
-                "target": neighbor_uri,
+                "source": node_label, 
+                "target": neighbor_label,
                 # "type": relationship[1]  # 假设relationship是一个三元组 (start_node, relationship_type, end_node)
             })
 
