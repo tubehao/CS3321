@@ -9,6 +9,10 @@
             color: #333;
             background-color: #f8f9fa;
         }
+        h2, h3 {
+            font-family: 'Roboto', sans-serif;
+            color: #2c3e50;
+        }
         .chat-container {
             display: flex;
             flex-direction: column;
@@ -58,11 +62,24 @@
             border-radius: 10px;
         }
         .message.bot .column {
-            width: 48%;
+            /* width: 49%; */
+            flex : 1;
+            padding: 0 10px;
+            position: relative;
         }
+
+        .message.bot .column + .column {
+            border-left: 2px solid #ddd; /* 分割线 */
+            margin-left: -2px; /* 确保分割线居中 */
+            padding-left: 12px; /* 调整左侧内边距，考虑分割线的宽度 */
+        }
+
         .message.bot .column h2 {
             text-align: center;
+            /* font-size: 18px; */
+            font-weight: 600;
         }
+
         .graph-container {
             width: 100%;
             height: 300px; /* Adjust the height as needed */
@@ -75,10 +92,10 @@
             width: 100%;
             padding: 5px;
             font-size: 16px;
-            border: 2px solid #007bff;
+            border: 2px solid black;
             border-radius: 5px;
             background-color: #e7f3ff;
-            color: #007bff;
+            color: black;
         }
     </style>
 {% endblock stylesheets %}
@@ -159,7 +176,7 @@
                             if (response.graph_data.nodes.length > 0) {
                                 var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
                                 query = "```"+response.query+"```";
-                                botMessageHtml += 'To get knowledge, we can use the following query in database <br> '+marked.parse(query)+'<h3> Query Result</h3><div class="graph-container" id="' + graphId + '"></div>';
+                                botMessageHtml += '<h3>Query</h3>To get knowledge, we can use the following query in database <br> '+marked.parse(query)+'<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                             }
                             botMessageHtml += '<h3> Solution</h3>';
                             botMessageHtml += marked.parse(response.solution_part1);
