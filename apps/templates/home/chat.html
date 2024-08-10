@@ -3,6 +3,12 @@
 
 {% block stylesheets %}
     <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-size: 16px;
+            color: #333;
+            background-color: #f8f9fa;
+        }
         .chat-container {
             display: flex;
             flex-direction: column;
@@ -152,7 +158,8 @@
                             botMessageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
                             if (response.graph_data.nodes.length > 0) {
                                 var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
-                                botMessageHtml += 'To get knowledge, we can use the following query in database /n ```'+response.query+'```<h3> Query Result</h3><div class="graph-container" id="' + graphId + '"></div>';
+                                query = "```"+response.query+"```";
+                                botMessageHtml += 'To get knowledge, we can use the following query in database <br> '+marked.parse(query)+'<h3> Query Result</h3><div class="graph-container" id="' + graphId + '"></div>';
                             }
                             botMessageHtml += '<h3> Solution</h3>';
                             botMessageHtml += marked.parse(response.solution_part1);

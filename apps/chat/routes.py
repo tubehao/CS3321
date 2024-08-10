@@ -93,6 +93,7 @@ def get_response():
     # 返回解决方案
 
     # print(type(visualize_data["nodes"]))
+    print(cypher_query)
     return jsonify({
         "solution_part1": solution,  # 第一部分
         "solution_part2": pure_solution,  # 第二部分
