@@ -39,6 +39,7 @@ def get_response():
     
     # 使用正则表达式提取用```包裹的Cypher查询
     match = re.search(r'```(.*?)```', generated_text, re.DOTALL)
+    cypher_query = None
     if match:
         cypher_query = match.group(1).strip()
         print("~~~~~~~~~~~~~~~~~~~~~")
@@ -96,7 +97,8 @@ def get_response():
         "solution_part1": solution,  # 第一部分
         "solution_part2": pure_solution,  # 第二部分
         "graph_data": graph_data,  # 返回图表数据
-        "visualize_data": visualize_data  # 返回可视化数据
+        "visualize_data": visualize_data,  # 返回可视化数据
+        "query" : cypher_query
     })
 
 def get_model_response(pipeline, prompt):

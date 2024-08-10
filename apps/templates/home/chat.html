@@ -35,14 +35,14 @@
             justify-content: flex-end;
         }
         .message.user .message-content {
-            background-color: #dcf8c6;
+            background-color: white;
             display: inline-block;
             padding: 10px;
             border-radius: 10px;
         }
         .message.bot {
             justify-content: flex-start;
-            background-color: #f1f0f0;
+            background-color: white;
         }
         .message.bot .message-content {
             display: flex;
@@ -107,7 +107,7 @@
 <script>
     $(document).ready(function () {
         // 在页面加载完成后立即显示欢迎信息
-        var welcomeMessage = '你好，有什么需要帮助的吗';
+        var welcomeMessage = 'Hello, how can I help you?';
         var welcomeMessageHtml = '<div class="message bot"><div class="message-content">' + marked.parse(welcomeMessage) + '</div></div>';
         $('#chat-messages').append(welcomeMessageHtml);
 
@@ -149,10 +149,10 @@
                     success: function(response) {
                         var botMessageHtml = '<div class="message bot"><div class="message-content">';
                         
-                            botMessageHtml += '<div class="column text-column"> <h2> Our Answer </h2><h3> Knowledge</h3>';
+                            botMessageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
                             if (response.graph_data.nodes.length > 0) {
                                 var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
-                                botMessageHtml += '<div class="graph-container" id="' + graphId + '"></div>';
+                                botMessageHtml += 'To get knowledge, we can use the following query in database /n ```'+response.query+'```<h3> Query Result</h3><div class="graph-container" id="' + graphId + '"></div>';
                             }
                             botMessageHtml += '<h3> Solution</h3>';
                             botMessageHtml += marked.parse(response.solution_part1);
@@ -160,7 +160,7 @@
                                 var visualID = "graph-" + Date.now()+1; // 生成一个时间戳ID
                                 botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
                             }
-                            botMessageHtml += '</div><div class="column text-column"> <h2> Normal </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
+                            botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
 
                             $('#chat-messages').append(botMessageHtml);
 
