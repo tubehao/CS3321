@@ -36,7 +36,7 @@
         }
         .message {
             margin-bottom: 15px;
-            width: 70%;
+            width: 80%;
             display: flex;
             padding: 10px;
             border-radius: 10px;
@@ -64,14 +64,14 @@
         .message.bot .column {
             /* width: 49%; */
             flex : 1;
-            padding: 0 10px;
+            padding: 0 20px;
             position: relative;
         }
 
         .message.bot .column + .column {
             border-left: 2px solid #ddd; /* 分割线 */
             margin-left: -2px; /* 确保分割线居中 */
-            padding-left: 12px; /* 调整左侧内边距，考虑分割线的宽度 */
+            padding-left: 22px; /* 调整左侧内边距，考虑分割线的宽度 */
         }
 
         .message.bot .column h2 {
@@ -176,14 +176,16 @@
                             if (response.graph_data.nodes.length > 0) {
                                 var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
                                 query = "```"+response.query+"```";
-                                botMessageHtml += '<h3>Query</h3>To get knowledge, we can use the following query in database <br> '+marked.parse(query)+'<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
+                                botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge <br> '+marked.parse(query)+'<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                             }
-                            botMessageHtml += '<h3> Solution</h3>';
+                            botMessageHtml += '<h3> Answer</h3>';
                             botMessageHtml += marked.parse(response.solution_part1);
                             if (response.visualize_data.nodes.length > 0) {
                                 var visualID = "graph-" + Date.now()+1; // 生成一个时间戳ID
                                 botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
                             }
+                            botMessageHtml += '<h3> Explanation</h3> '+ marked.parse(response.explanation);
+
                             botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
 
                             $('#chat-messages').append(botMessageHtml);

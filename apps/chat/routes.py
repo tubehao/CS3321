@@ -80,6 +80,7 @@ def get_response():
                             "nodes": [{{ "id": "node1" }}, {{ "id": "node2" }}],
                             "edges": [{{ "source": "node1", "target": "node2" }}]
                             }}. your response should be able to convert by eval function in python. Answer: {solution}""")
+    explanation = get_model_response(pipeline_pure, f"Explain the answer and the graph. Answer:{solution}, graph:{graph_data}")
     print(visualize_data)
     try:
         visualize_data_dict = eval(visualize_data)
@@ -99,7 +100,8 @@ def get_response():
         "solution_part2": pure_solution,  # 第二部分
         "graph_data": graph_data,  # 返回图表数据
         "visualize_data": visualize_data,  # 返回可视化数据
-        "query" : cypher_query
+        "query" : cypher_query,
+        "explanation": explanation
     })
 
 def get_model_response(pipeline, prompt):
