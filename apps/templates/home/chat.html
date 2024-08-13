@@ -175,7 +175,8 @@
                             botMessageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
                             if (response.graph_data.nodes.length > 0) {
                                 var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
-                                query = "```"+response.query+"```";
+                                query = "```"+"\n"+response.query+"\n"+"```";
+                                console.log(query);
                                 botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge <br> '+marked.parse(query)+'<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                             }
                             botMessageHtml += '<h3> Answer</h3>';

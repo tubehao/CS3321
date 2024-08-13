@@ -25,12 +25,16 @@ def get_response():
     pipeline_prompt = current_app.config['MODEL_PIPELINE']
     pipeline_chat = current_app.config['MODEL_SOLUTION']
     pipeline_pure = current_app.config['MODEL_PURE']
+    pipeline_visual = current_app.config['MODEL_VISUAL']
     
     current_database = current_app.config.get('CURRENT_DATABASE', 'yago')
     query_prompt = current_app.config['QUERY_PROMPT'][current_database]
     
     # 构建提示以生成Cypher查询语句
-    prompt = f"Our dataset contains a {query_prompt['type']} stored in a Neo4j database. With node including {query_prompt['label']} and uri. Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```' \n \n for example,{query_prompt['example']}.\nNatural Language Query: {user_message}\n\n\n\nCypher Query:"
+    prompt = f"""Our dataset contains a {query_prompt['type']} stored in a Neo4j database. With node including {query_prompt['label']} and uri. 
+    Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```'. The format of query result should be able to visualize by G6 such as {{"nodes": [], "edges": []}} while all the label and id should be string.
+    for example,{query_prompt['example']}.
+    Natural Language Query: {user_message}\n\n\n\nCypher Query:"""
     print(prompt)
     # 调用模型生成输出
     # output = pipeline_prompt(prompt, max_new_tokens=100)
@@ -48,25 +52,36 @@ def get_response():
         try:
             with driver.session() as session:
                 result = session.run(cypher_query, timeout=10)  # 设置超时时间为10秒
-                query_results = [record.data() for record in result]
+                # query_results = [record.data() for record in result]
+                query_results = result.data()
+                print(query_results)
+
         except:
             # logging.error(f"Query timed out or service unavailable: {e}")
-            query_results = []
+            query_results = None
     else:
         # cypher_query = "MATCH (n) RETURN n LIMIT 1"  # 默认查询语句，如果没有匹配到
-        query_results = []
+        query_results = None
     # cypher_query = "MATCH (n)-[r]-(neighbor) WHERE n.rdfs__label CONTAINS 'Basketball' RETURN n, r, neighbor LIMIT 25"
 
     # 使用生成的Cypher查询语句在Neo4j中查询
     
     # print(query_results)
     # 将查询结果转换为G6所需的数据格式
-    graph_data = parse_neo4j_results(query_results)
-    print(graph_data)
+    # graph_data = parse_neo4j_results(query_results)
+
+    # graph_data = get_model_response(pipeline_chat,f"""Convert the following data to the format that can visualize by G6 such as {{ "nodes": [], "edges": []}}.your response should be able to convert by eval function in python. Data:{str(query_results)[:4000]}""")    
+    # graph_data = eval(graph_data)
+
+    graph_data = query_results[0]
+    
+
+    # print(type(graph_data[0]["nodes"][0]))
+    # print(type(graph_data[0]["edges"]))
 
     # 构建提示以让LLM解决问题
     knowledge = str(graph_data)
-    result_prompt = f"Knowledge: {knowledge[0:4000]}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
+    result_prompt = f"Knowledge: {knowledge[0:3000]}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
 
     # final_output = pipeline_chat(result_prompt, max_new_tokens=200)
     # solution = final_output[0]['generated_text'].strip()
@@ -76,11 +91,13 @@ def get_response():
     # pure_output = pipeline_pure(pure_prompt, max_new_tokens=200)
     # pure_solution = pure_output[0]['generated_text'].strip()
     pure_solution = get_model_response(pipeline_pure, pure_prompt)
-    visualize_data = get_model_response(pipeline_pure, f"""Change the answer to the format that I can visualize by G6 such as {{
+    print(solution)
+    visualize_solution = solution[:2000] if len(solution) > 2000 else solution
+    visualize_data = get_model_response(pipeline_chat, f"""Change the answer to the format that can be visualized by G6 such as {{
                             "nodes": [{{ "id": "node1" }}, {{ "id": "node2" }}],
                             "edges": [{{ "source": "node1", "target": "node2" }}]
-                            }}. your response should be able to convert by eval function in python. Answer: {solution}""")
-    explanation = get_model_response(pipeline_pure, f"Explain the answer and the graph. Answer:{solution}, graph:{graph_data}")
+                            }}. your response should be able to convert by eval function in python, answer the data only, don't contain any other symbol. Answer: {visualize_solution}, Graph Data:{str(graph_data)[:2000]}""")
+    explanation = get_model_response(pipeline_chat, f"Explain the answer and the graph. Answer:{visualize_solution}, Graph Data:{str(visualize_data)[:2000]}")
     print(visualize_data)
     try:
         visualize_data_dict = eval(visualize_data)
@@ -90,11 +107,10 @@ def get_response():
             raise ValueError("Generated data is not in the expected format.")
     except Exception as e:
         print(f"Error parsing visualize_data: {e}")
-        visualize_data = {}
+        visualize_data = {"nodes": [], "edges": []}
     # 返回解决方案
 
     # print(type(visualize_data["nodes"]))
-    print(cypher_query)
     return jsonify({
         "solution_part1": solution,  # 第一部分
         "solution_part2": pure_solution,  # 第二部分
@@ -110,7 +126,12 @@ def get_model_response(pipeline, prompt):
         generated_text = output[0]['generated_text'].strip()
         return generated_text[len(prompt):]
     elif "gpt" in current_app.config["MODEL_ID"]:
-        return pipeline(prompt, max_tokens=2000)
+        response = pipeline(prompt)
+        if not isinstance(response, str):
+        # 获取内容
+            return response.content
+        else:
+            return response
 
 
 def parse_neo4j_results(results):

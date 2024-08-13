@@ -7,7 +7,7 @@ from importlib import import_module
 import transformers
 import os
 from neo4j import GraphDatabase
-from langchain_openai import OpenAI
+from langchain_openai import ChatOpenAI
 from langchain_huggingface import ChatHuggingFace
 
 db = SQLAlchemy()
@@ -60,11 +60,18 @@ def initialize_model(app):
             tokenizer=model_id,
             device=1  # 如果没有GPU，设置为-1
         )
+        app.config['MODEL_VISUAL'] = ChatHuggingFace(
+            "text-generation",
+            model=model_id,
+            tokenizer=model_id,
+            device=1  # 如果没有GPU，设置为-1
+        )
     elif "gpt" in model_id:
         api_key = app.config['OPENAI_API_KEY']
-        app.config['MODEL_PIPELINE'] = OpenAI(api_key=api_key)
-        app.config['MODEL_SOLUTION'] = OpenAI(api_key=api_key)
-        app.config['MODEL_PURE'] = OpenAI(api_key=api_key)
+        app.config['MODEL_PIPELINE'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        app.config['MODEL_SOLUTION'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        app.config['MODEL_PURE'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        app.config['MODEL_VISUAL'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
 
 def initialize_neo4j(app):
     uri = "bolt://localhost:7687"  # 根据需要替换为您的实际地址
