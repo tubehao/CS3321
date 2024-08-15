@@ -1,15 +1,23 @@
-from flask import Blueprint, request, jsonify, current_app, render_template
-from neo4j import GraphDatabase
+from flask import Blueprint, render_template, request, jsonify, current_app, session
+from flask_login import login_required, current_user
 import re
 import json
 blueprint = Blueprint('chat', __name__, url_prefix='/chat')
 
 @blueprint.route('/chat.html')
+@login_required
 def index():
     databases = current_app.config['DATABASES']
     return render_template('/home/chat.html', databases=databases)
 
+@blueprint.route('/chat_history', methods=['GET'])
+@login_required
+def chat_history():
+    chat_history = session.get(f'{current_user.id}_chat_history', [])
+    return jsonify(chat_history)
+
 @blueprint.route('/set_database', methods=['POST'])
+@login_required
 def set_database():
     data = request.get_json()
     selected_database = data['database']
@@ -17,6 +25,7 @@ def set_database():
     return jsonify({'status': 'success', 'selected_database': selected_database})
 
 @blueprint.route('/get_response', methods=['POST'])
+@login_required
 def get_response():
     data = request.get_json()
     user_message = data['message']
@@ -35,70 +44,44 @@ def get_response():
     Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```'. The format of query result should be able to visualize by G6 such as {{"nodes": [], "edges": []}} while all the label and id should be string.
     for example,{query_prompt['example']}.
     Natural Language Query: {user_message}\n\n\n\nCypher Query:"""
-    print(prompt)
-    # 调用模型生成输出
-    # output = pipeline_prompt(prompt, max_new_tokens=100)
-    # generated_text = output[0]['generated_text'].strip()
+    
     generated_text = get_model_response(pipeline_prompt, prompt)
+    print(generated_text)
     
     # 使用正则表达式提取用```包裹的Cypher查询
     match = re.search(r'```(.*?)```', generated_text, re.DOTALL)
     cypher_query = None
+    print(cypher_query)
     if match:
         cypher_query = match.group(1).strip()
-        print("~~~~~~~~~~~~~~~~~~~~~")
-        print(cypher_query)
         driver = current_app.config['NEO4J_DRIVER']
         try:
-            with driver.session() as session:
-                result = session.run(cypher_query, timeout=10)  # 设置超时时间为10秒
-                # query_results = [record.data() for record in result]
+            with driver.session() as neo4jsession:
+                result = neo4jsession.run(cypher_query, timeout=10)  # 设置超时时间为10秒
                 query_results = result.data()
-                print(query_results)
 
         except:
-            # logging.error(f"Query timed out or service unavailable: {e}")
             query_results = None
     else:
-        # cypher_query = "MATCH (n) RETURN n LIMIT 1"  # 默认查询语句，如果没有匹配到
         query_results = None
-    # cypher_query = "MATCH (n)-[r]-(neighbor) WHERE n.rdfs__label CONTAINS 'Basketball' RETURN n, r, neighbor LIMIT 25"
+    print(query_results)
+    graph_data = query_results[0] if query_results else {}
 
-    # 使用生成的Cypher查询语句在Neo4j中查询
-    
-    # print(query_results)
-    # 将查询结果转换为G6所需的数据格式
-    # graph_data = parse_neo4j_results(query_results)
-
-    # graph_data = get_model_response(pipeline_chat,f"""Convert the following data to the format that can visualize by G6 such as {{ "nodes": [], "edges": []}}.your response should be able to convert by eval function in python. Data:{str(query_results)[:4000]}""")    
-    # graph_data = eval(graph_data)
-
-    graph_data = query_results[0]
-    
-
-    # print(type(graph_data[0]["nodes"][0]))
-    # print(type(graph_data[0]["edges"]))
-
-    # 构建提示以让LLM解决问题
     knowledge = str(graph_data)
     result_prompt = f"Knowledge: {knowledge[0:3000]}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
 
-    # final_output = pipeline_chat(result_prompt, max_new_tokens=200)
-    # solution = final_output[0]['generated_text'].strip()
     solution = get_model_response(pipeline_chat, result_prompt)
 
     pure_prompt = f"Address the following question. \n\n Question:{user_message}.Answer:"
-    # pure_output = pipeline_pure(pure_prompt, max_new_tokens=200)
-    # pure_solution = pure_output[0]['generated_text'].strip()
     pure_solution = get_model_response(pipeline_pure, pure_prompt)
-    print(solution)
+
     visualize_solution = solution[:2000] if len(solution) > 2000 else solution
     visualize_data = get_model_response(pipeline_chat, f"""Change the answer to the format that can be visualized by G6 such as {{
                             "nodes": [{{ "id": "node1" }}, {{ "id": "node2" }}],
                             "edges": [{{ "source": "node1", "target": "node2" }}]
                             }}. your response should be able to convert by eval function in python, answer the data only, don't contain any other symbol. Answer: {visualize_solution}, Graph Data:{str(graph_data)[:2000]}""")
     explanation = get_model_response(pipeline_chat, f"Explain the answer and the graph. Answer:{visualize_solution}, Graph Data:{str(visualize_data)[:2000]}")
-    print(visualize_data)
+    
     try:
         visualize_data_dict = eval(visualize_data)
         if isinstance(visualize_data_dict, dict) and all(isinstance(v, list) and all(isinstance(i, dict) for i in v) for v in visualize_data_dict.values()):
@@ -108,17 +91,38 @@ def get_response():
     except Exception as e:
         print(f"Error parsing visualize_data: {e}")
         visualize_data = {"nodes": [], "edges": []}
-    # 返回解决方案
+    print(graph_data)
+    # 保存用户消息和系统响应到会话中
+    chat_history = session.get(f'{current_user.id}_chat_history', [])
+    chat_history.append({'sender': 'user', 'message': user_message})
+    chat_history.append({'sender': 'bot', 'message': {
+        "solution_part1": solution,
+        "solution_part2": pure_solution,
+        "graph_data": graph_data,
+        "visualize_data": visualize_data,
+        "query": cypher_query,
+        "explanation": explanation
+    }})
 
-    # print(type(visualize_data["nodes"]))
+    # 将更新后的历史记录存回 session
+    session[f'{current_user.id}_chat_history'] = chat_history
+
     return jsonify({
-        "solution_part1": solution,  # 第一部分
-        "solution_part2": pure_solution,  # 第二部分
-        "graph_data": graph_data,  # 返回图表数据
-        "visualize_data": visualize_data,  # 返回可视化数据
+        "solution_part1": solution,
+        "solution_part2": pure_solution,
+        "graph_data": graph_data,
+        "visualize_data": visualize_data,
         "query" : cypher_query,
         "explanation": explanation
     })
+
+
+@blueprint.route('/clear_history', methods=['POST'])
+@login_required
+def clear_history():
+    session.pop(f'{current_user.id}_chat_history', None)
+    return jsonify({'status': 'Chat history cleared'})
+
 
 def get_model_response(pipeline, prompt):
     if "llama" in current_app.config["MODEL_ID"]:
@@ -128,64 +132,6 @@ def get_model_response(pipeline, prompt):
     elif "gpt" in current_app.config["MODEL_ID"]:
         response = pipeline(prompt)
         if not isinstance(response, str):
-        # 获取内容
             return response.content
         else:
             return response
-
-
-def parse_neo4j_results(results):
-    graph_data = {"nodes": [], "edges": []}
-    node_ids = set()
-
-    for record in results:
-        node = record['n']
-        node_uri = node.get('uri', '')
-        node_label = node.get('ns0__label', node_uri)
-        node_comment = node.get('rdfs__comment', '')
-        node_year_of_publication = node.get('ns2__yearOfPublication', None)
-        node_published_in = node.get('ns2__publishedIn', None)
-        node_title = node.get('ns2__title', None)
-        
-        # 添加节点
-        # if node_uri not in node_ids:
-        node_data = {
-            "id": node_label,
-            # "uri": node_uri,
-            # "label": node_label,
-            # "data": node_label,
-            "comment": node_comment,
-            # "year_of_publication": node_year_of_publication,
-            # "published_in": node_published_in,
-            # "title": node_title,
-        }
-        graph_data['nodes'].append(node_data)
-        # node_ids.add(node_uri)
-
-        # 处理关系和邻居节点（如果存在）
-        relationship = record.get('r')
-        neighbor = record.get('neighbor')
-
-        if relationship and neighbor:
-            neighbor_uri = neighbor.get('uri', '')
-            neighbor_label = neighbor.get('ns0__label', neighbor_uri)
-            neighbor_comment = neighbor.get('rdfs__comment', '')
-            # neighbor_image = neighbor.get('sch__image', neighbor.get('ns2__image', ''))
-
-            # 添加邻居节点
-            neighbor_data = {
-                "id": neighbor_label,
-                # "label": neighbor_label,
-                "comment": neighbor_comment,
-                # "image": neighbor_image
-            }
-            graph_data['nodes'].append(neighbor_data)
-
-            # 添加边
-            graph_data['edges'].append({
-                "source": node_label, 
-                "target": neighbor_label,
-                # "type": relationship[1]  # 假设relationship是一个三元组 (start_node, relationship_type, end_node)
-            })
-
-    return graph_data

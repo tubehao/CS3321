@@ -9,13 +9,19 @@ import os
 from neo4j import GraphDatabase
 from langchain_openai import ChatOpenAI
 from langchain_huggingface import ChatHuggingFace
+from flask_session import Session  # 导入 Flask-Session
+
 
 db = SQLAlchemy()
 login_manager = LoginManager()
+sess = Session()
 
 def register_extensions(app):
     db.init_app(app)
     login_manager.init_app(app)
+    sess.init_app(app)
+    app.config['SECRET_KEY'] = 'your-secret-key'
+    
 
 def register_blueprints(app):
     for module_name in ('authentication', 'chat', 'table', 'home'):
@@ -23,7 +29,7 @@ def register_blueprints(app):
         app.register_blueprint(module.blueprint)
 
 def configure_database(app):
-    @app.before_first_request
+    @app.before_request
     def initialize_database():
         try:
             db.create_all()
@@ -82,6 +88,9 @@ def initialize_neo4j(app):
 def create_app(config):
     app = Flask(__name__)
     app.config.from_object(config)
+    app.config['SESSION_TYPE'] = 'filesystem'  # 使用文件系统存储 Session
+    app.config['SESSION_PERMANENT'] = False    # 可选：设置 session 不永久存储
+
     register_extensions(app)
     register_blueprints(app)
     configure_database(app)

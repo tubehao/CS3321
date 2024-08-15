@@ -14,6 +14,7 @@ def index():
 
 @blueprint.route('/upload', methods=['POST'])
 def upload_file():
+    # return jsonify(success=True)
     if 'file' not in request.files:
         return jsonify(success=False, message="No file part")
     file = request.files['file']

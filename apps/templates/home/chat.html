@@ -2,125 +2,142 @@
 {% block title %}Chat Interface{% endblock %}
 
 {% block stylesheets %}
-    <style>
-        body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            font-size: 16px;
-            color: #333;
-            background-color: #f8f9fa;
-        }
-        h2, h3 {
-            font-family: 'Roboto', sans-serif;
-            color: #2c3e50;
-        }
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            height: 80vh;
-            max-height: 80vh;
-            overflow: hidden;
-        }
-        .chat-messages {
-            flex: 1;
-            overflow-y: auto;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        .chat-input {
-            border-top: 1px solid #ddd;
-            padding: 10px;
-            /* display: flex;
+<style>
+    body {
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        font-size: 16px;
+        color: #333;
+        background-color: #f8f9fa;
+    }
+
+    h2,
+    h3 {
+        font-family: 'Roboto', sans-serif;
+        color: #2c3e50;
+    }
+
+    .chat-container {
+        display: flex;
+        flex-direction: column;
+        height: 80vh;
+        max-height: 80vh;
+        overflow: hidden;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .chat-input {
+        border-top: 1px solid #ddd;
+        padding: 10px;
+        /* display: flex;
             justify-content: center; */
-        }
-        .message {
-            margin-bottom: 15px;
-            width: 80%;
-            display: flex;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        .message.user {
-            justify-content: flex-end;
-        }
-        .message.user .message-content {
-            background-color: white;
-            display: inline-block;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        .message.bot {
-            justify-content: flex-start;
-            background-color: white;
-        }
-        .message.bot .message-content {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            padding: 10px;
-            border-radius: 10px;
-        }
-        .message.bot .column {
-            /* width: 49%; */
-            flex : 1;
-            padding: 0 20px;
-            position: relative;
-        }
+    }
 
-        .message.bot .column + .column {
-            border-left: 2px solid #ddd; /* 分割线 */
-            margin-left: -2px; /* 确保分割线居中 */
-            padding-left: 22px; /* 调整左侧内边距，考虑分割线的宽度 */
-        }
+    .message {
+        margin-bottom: 15px;
+        width: 80%;
+        display: flex;
+        padding: 10px;
+        border-radius: 10px;
+    }
 
-        .message.bot .column h2 {
-            text-align: center;
-            /* font-size: 18px; */
-            font-weight: 600;
-        }
+    .message.user {
+        justify-content: flex-end;
+    }
 
-        .graph-container {
-            width: 100%;
-            height: 300px; /* Adjust the height as needed */
-        }
-        .database-select-container {
-            margin-bottom: 10px;
-            width: 10%;
-        }
-        .database-select {
-            width: 100%;
-            padding: 5px;
-            font-size: 16px;
-            border: 2px solid black;
-            border-radius: 5px;
-            background-color: #e7f3ff;
-            color: black;
-        }
-    </style>
+    .message.user .message-content {
+        background-color: white;
+        display: inline-block;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .message.bot {
+        justify-content: flex-start;
+        background-color: white;
+    }
+
+    .message.bot .message-content {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        padding: 10px;
+        border-radius: 10px;
+    }
+
+    .message.bot .column {
+        /* width: 49%; */
+        flex: 1;
+        padding: 0 20px;
+        position: relative;
+    }
+
+    .message.bot .column+.column {
+        border-left: 2px solid #ddd;
+        /* 分割线 */
+        margin-left: -2px;
+        /* 确保分割线居中 */
+        padding-left: 22px;
+        /* 调整左侧内边距，考虑分割线的宽度 */
+    }
+
+    .message.bot .column h2 {
+        text-align: center;
+        /* font-size: 18px; */
+        font-weight: 600;
+    }
+
+    .graph-container {
+        width: 100%;
+        height: 300px;
+        /* Adjust the height as needed */
+    }
+
+    .database-select-container {
+        margin-bottom: 10px;
+        width: 10%;
+    }
+
+    .database-select {
+        width: 100%;
+        padding: 5px;
+        font-size: 16px;
+        border: 2px solid black;
+        border-radius: 5px;
+        background-color: #e7f3ff;
+        color: black;
+    }
+</style>
 {% endblock stylesheets %}
 
 {% block content %}
-    <div class="container-fluid chat-container">
-        <div class="chat-messages" id="chat-messages">
-            <!-- Messages will be dynamically inserted here -->
+<div class="container-fluid chat-container">
+    <div class="chat-messages" id="chat-messages">
+        <!-- Messages will be dynamically inserted here -->
+    </div>
+    <div class="chat-input">
+        <div class="database-select-container">
+            <select class="database-select" id="database-select">
+                {% for db in databases %}
+                <option value="{{ db }}">{{ db }}</option>
+                {% endfor %}
+            </select>
         </div>
-        <div class="chat-input">
-            <div class="database-select-container">
-                <select class="database-select" id="database-select">
-                    {% for db in databases %}
-                    <option value="{{ db }}">{{ db }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="input-group">
-                <input type="text" class="form-control" placeholder="Type a message" id="message-input">
-                <div class="input-group-append">
-                    <button class="btn btn-primary" type="button" id="send-button">Send</button>
-                </div>
+        <div class="input-group">
+            <input type="text" class="form-control" placeholder="Type a message" id="message-input">
+            <div class="input-group-append">
+                <button class="btn btn-primary" type="button" id="send-button">Send</button>
             </div>
         </div>
     </div>
+</div>
 {% endblock content %}
 
 {% block javascripts %}
@@ -129,10 +146,8 @@
 <script src="https://unpkg.com/@antv/g6@5/dist/g6.min.js"></script>
 <script>
     $(document).ready(function () {
-        // 在页面加载完成后立即显示欢迎信息
-        var welcomeMessage = 'Hello, how can I help you?';
-        var welcomeMessageHtml = '<div class="message bot"><div class="message-content">' + marked.parse(welcomeMessage) + '</div></div>';
-        $('#chat-messages').append(welcomeMessageHtml);
+        // 页面加载时，获取聊天历史记录
+        loadChatHistory();
 
         $('#send-button').on('click', function () {
             sendMessage();
@@ -150,17 +165,71 @@
                 url: '{{ url_for("chat.set_database") }}',
                 type: 'POST',
                 contentType: 'application/json',
-                data: JSON.stringify({database: selectedDatabase}),
+                data: JSON.stringify({ database: selectedDatabase }),
                 success: function (response) {
                     console.log('Database selection saved:', response);
                 }
             });
         });
 
+        function loadChatHistory() {
+            $.ajax({
+                url: '{{ url_for("chat.chat_history") }}',
+                type: 'GET',
+                success: function (chatHistory) {
+                    renderChatHistory(chatHistory);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Failed to load chat history:", error);
+                }
+            });
+        }
+
+        function renderChatHistory(chatHistory) {
+            chatHistory.forEach(function (chat) {
+                var messageHtml;
+                if (chat.sender === 'user') {
+                    messageHtml = '<div class="message user"><div class="message-content">' + chat.message + '</div></div>';
+                    $('#chat-messages').append(messageHtml);
+                } 
+                else if (chat.sender === 'bot') {
+                    messageHtml = '<div class="message bot"><div class="message-content">';
+
+                    messageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
+                    if (chat.message.graph_data.nodes.length > 0) {
+                        var graphId = "graph-" + Date.now();
+                        var query = "<pre>" + chat.message.query + "</pre>";
+                        messageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
+                    }
+                    messageHtml += '<h3> Answer</h3>' + marked.parse(chat.message.solution_part1);
+                    if (chat.message.visualize_data.nodes.length > 0) {
+                        var visualID = "graph-" + Date.now() + 1;
+                        messageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
+                    }
+                    messageHtml += '<h3> Explanation</h3>' + marked.parse(chat.message.explanation);
+                    messageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(chat.message.solution_part2) + '</div></div></div>';
+                    $('#chat-messages').append(messageHtml);
+                    if (chat.message.graph_data.nodes.length > 0) {
+                        setTimeout(function () {
+                            var container = document.getElementById(graphId);
+                            visualizeGraph(chat.message.graph_data, container);
+                        }, 0);
+                    }
+                    if (chat.message.visualize_data.nodes.length > 0) {
+                        setTimeout(function () {
+                            var container = document.getElementById(visualID);
+                            visualizeGraph(chat.message.visualize_data, container);
+                        }, 0);
+                    }
+                }
+                
+            });
+        }
+
         function sendMessage() {
             var message = $('#message-input').val();
             if (message.trim() !== '') {
-                var userMessageHtml = '<div class="message user"><div class="message-content">' + marked.parse(message) + '</div></div>';
+                var userMessageHtml = '<div class="message user"><div class="message-content">' + message + '</div></div>';
                 $('#chat-messages').append(userMessageHtml);
                 $('#message-input').val('');
                 // 发送用户消息到后端
@@ -168,47 +237,43 @@
                     url: '{{ url_for("chat.get_response") }}',
                     type: 'POST',
                     contentType: 'application/json',
-                    data: JSON.stringify({message: message}),
-                    success: function(response) {
+                    data: JSON.stringify({ message: message }),
+                    success: function (response) {
                         var botMessageHtml = '<div class="message bot"><div class="message-content">';
-                        
-                            botMessageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
-                            if (response.graph_data.nodes.length > 0) {
-                                var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
-                                query = "```"+"\n"+response.query+"\n"+"```";
-                                console.log(query);
-                                botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge <br> '+marked.parse(query)+'<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
-                            }
-                            botMessageHtml += '<h3> Answer</h3>';
-                            botMessageHtml += marked.parse(response.solution_part1);
-                            if (response.visualize_data.nodes.length > 0) {
-                                var visualID = "graph-" + Date.now()+1; // 生成一个时间戳ID
-                                botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
-                            }
-                            botMessageHtml += '<h3> Explanation</h3> '+ marked.parse(response.explanation);
 
-                            botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
+                        botMessageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
+                        if (response.graph_data.nodes.length > 0) {
+                            var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
+                            query = "```" + "\n" + response.query + "\n" + "```";
+                            console.log(query);
+                            botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge <br> ' + marked.parse(query) + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
+                        }
+                        botMessageHtml += '<h3> Answer</h3>';
+                        botMessageHtml += marked.parse(response.solution_part1);
+                        if (response.visualize_data.nodes.length > 0) {
+                            var visualID = "graph-" + Date.now() + 1; // 生成一个时间戳ID
+                            botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
+                        }
+                        botMessageHtml += '<h3> Explanation</h3> ' + marked.parse(response.explanation);
 
-                            $('#chat-messages').append(botMessageHtml);
+                        botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
 
-                            // 确保元素已被添加到 DOM 中后再执行 visualizeGraph
-                            if (response.graph_data.nodes.length > 0) {
-                                setTimeout(function() {
-                                    var container = document.getElementById(graphId);
-                                    visualizeGraph(response.graph_data, container);
-                                }, 0);
-                            }
+                        $('#chat-messages').append(botMessageHtml);
 
-                            if (response.visualize_data.nodes.length > 0) {
-                                setTimeout(function() {
-                                    var container = document.getElementById(visualID);
-                                    visualizeGraph(response.visualize_data, container);
-                                }, 0);
-                            }
+                        // 确保元素已被添加到 DOM 中后再执行 visualizeGraph
+                        if (response.graph_data.nodes.length > 0) {
+                            setTimeout(function () {
+                                var container = document.getElementById(graphId);
+                                visualizeGraph(response.graph_data, container);
+                            }, 0);
+                        }
 
-                            // if (response.graph_data.nodes.length > 0) {
-                                
-                            // }
+                        if (response.visualize_data.nodes.length > 0) {
+                            setTimeout(function () {
+                                var container = document.getElementById(visualID);
+                                visualizeGraph(response.visualize_data, container);
+                            }, 0);
+                        }
                     }
                 });
             }
@@ -218,61 +283,30 @@
             const graph = new G6.Graph({
                 container: container,
                 width: container.offsetWidth,
-                
                 height: container.offsetHeight,
                 layout: {
                     type: 'force',
-                    // preventOverlap: true,
                 },
-
                 behaviors: ['drag-node', 'zoom-canvas', 'drag-canvas'],
-
                 node: {
                     size: 20,
                     color: '#5B8FF9',
-                    
-                    // labelCfg: {
-                    //     style: {
-                    //         fill: '#000', // 标签字体颜色
-                    //         fontSize: 12, // 标签字体大小
-                    //     },
-                    //     position: 'bottom', // 标签位置，可选值有 'top', 'bottom', 'left', 'right' 等
-                    // },
                     style: {
-                        // iconText: (d) => d.data,
                         labelText: (d) => d.id,
                     }
-                    
                 },
                 edge: {
-                    type:'line',
+                    type: 'line',
                     style: {
                         stroke: '#000000',
                     },
                 },
-                // nodeStateStyles: {
-                //     hover: {
-                //         fill: 'lightsteelblue'
-                //     }
-                // }
             });
-
-            // graph.on('node:mouseenter', (e) => {
-            //     graph.setItemState(e.item, 'hover', true);
-            // });
-
-            // graph.on('node:mouseleave', (e) => {
-            //     graph.setItemState(e.item, 'hover', false);
-            // });
 
             graph.setData(graphData);
             graph.render();
-            // window.onresize = () => {
-            //     if (!graph || graph.get('destroyed')) return;
-            //     if (!container || !container.scrollWidth || !container.scrollHeight) return;
-            //     graph.changeSize(container.scrollWidth, container.scrollHeight);
-            // };
         }
     });
 </script>
+
 {% endblock javascripts %}
