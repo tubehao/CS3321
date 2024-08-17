@@ -46,14 +46,13 @@ def get_response():
     Natural Language Query: {user_message}\n\n\n\nCypher Query:"""
     
     generated_text = get_model_response(pipeline_prompt, prompt)
-    print(generated_text)
     
     # 使用正则表达式提取用```包裹的Cypher查询
     match = re.search(r'```(.*?)```', generated_text, re.DOTALL)
     cypher_query = None
-    print(cypher_query)
     if match:
         cypher_query = match.group(1).strip()
+        print(cypher_query)
         driver = current_app.config['NEO4J_DRIVER']
         try:
             with driver.session() as neo4jsession:
