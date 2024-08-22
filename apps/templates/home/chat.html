@@ -95,7 +95,7 @@
 
     .message.bot .column {
         width: 50%;
-        
+
         /* 固定每一列的宽度为50% */
         /* flex-grow: 0; */
         /* 禁止列增长 */
@@ -143,6 +143,8 @@
         color: black;
     }
 </style>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+
 {% endblock stylesheets %}
 
 {% block content %}
@@ -172,10 +174,19 @@
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script src="https://unpkg.com/@antv/g6@5/dist/g6.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/graphql.min.js"></script>
+
 <script>
+    document.addEventListener('DOMContentLoaded', (event) => {
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightElement(block); // 使用highlightElement替代highlightBlock
+        });
+    });
     $(document).ready(function () {
         // 页面加载时，获取聊天历史记录
         loadChatHistory();
+
 
         $('#send-button').on('click', function () {
             sendMessage();
@@ -227,7 +238,7 @@
                     messageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
                     if (chat.message.graph_data.nodes.length > 0) {
                         var graphId = "graph-" + Date.now();
-                        var query = "<pre>" + chat.message.query + "</pre>";
+                        var query = "<pre><code class=\"language-graphql\">" + chat.message.query + "</code></pre>";
                         messageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                     }
                     messageHtml += '<h3> Answer</h3><div class="markdown-content">' + marked.parse(chat.message.solution_part1) + '</div>';
@@ -238,6 +249,7 @@
                     messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
                     messageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
                     $('#chat-messages').append(messageHtml);
+
                     if (chat.message.graph_data.nodes.length > 0) {
                         setTimeout(function () {
                             var container = document.getElementById(graphId);
@@ -250,6 +262,10 @@
                             visualizeGraph(chat.message.visualize_data, container);
                         }, 0);
                     }
+                    $('pre code').each(function (i, block) {
+                        hljs.highlightElement(block); // 同样替换这里的方法
+                    });
+
                 }
             });
         }
@@ -271,9 +287,11 @@
                         botMessageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
                         if (response.graph_data.nodes.length > 0) {
                             var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
-                            query = "```" + "\n" + response.query + "\n" + "```";
+                            // query = "```" + "\n" + response.query + "\n" + "```";
+                            var query = "<pre><code class=\"language-graphql\">" + response.query + "</code></pre>";
+
                             console.log(query);
-                            botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge <br> ' + marked.parse(query) + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
+                            botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge <br> ' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                         }
                         botMessageHtml += '<h3> Answer</h3>';
                         botMessageHtml += marked.parse(response.solution_part1);
@@ -286,6 +304,7 @@
                         botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
 
                         $('#chat-messages').append(botMessageHtml);
+
 
                         // 确保元素已被添加到 DOM 中后再执行 visualizeGraph
                         if (response.graph_data.nodes.length > 0) {
@@ -301,6 +320,10 @@
                                 visualizeGraph(response.visualize_data, container);
                             }, 0);
                         }
+                        $('pre code').each(function (i, block) {
+                            hljs.highlightElement(block); // 同样替换这里的方法
+                        });
+
                     }
                 });
             }
