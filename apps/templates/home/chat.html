@@ -5,16 +5,36 @@
 <style>
     body {
         font-family: 'Helvetica Neue', Arial, sans-serif;
-        font-size: 16px;
         color: #333;
         background-color: #f8f9fa;
     }
 
-    h2,
+    .markdown-content {
+        font-size: 22px;
+        /* 根据需要调整字体大小 */
+    }
+
+    h2 {
+        font-family: 'Roboto', sans-serif;
+        color: #2c3e50;
+        font-size: 32px;
+    }
+
     h3 {
         font-family: 'Roboto', sans-serif;
         color: #2c3e50;
+        font-size: 28px;
     }
+
+    li {
+        margin-bottom: 10px;
+        font-size: 22px;
+    }
+
+    p {
+        font-size: 22px;
+    }
+
 
     .chat-container {
         display: flex;
@@ -46,6 +66,7 @@
         display: flex;
         padding: 10px;
         border-radius: 10px;
+        font-size: 22px;
     }
 
     .message.user {
@@ -73,8 +94,15 @@
     }
 
     .message.bot .column {
+        width: 50%;
+        
+        /* 固定每一列的宽度为50% */
+        /* flex-grow: 0; */
+        /* 禁止列增长 */
+        /* flex-shrink: 0; */
+        /* 禁止列收缩 */
         /* width: 49%; */
-        flex: 1;
+        /* flex: 1; */
         padding: 0 20px;
         position: relative;
     }
@@ -185,13 +213,14 @@
             });
         }
 
+
         function renderChatHistory(chatHistory) {
             chatHistory.forEach(function (chat) {
                 var messageHtml;
                 if (chat.sender === 'user') {
                     messageHtml = '<div class="message user"><div class="message-content">' + chat.message + '</div></div>';
                     $('#chat-messages').append(messageHtml);
-                } 
+                }
                 else if (chat.sender === 'bot') {
                     messageHtml = '<div class="message bot"><div class="message-content">';
 
@@ -201,13 +230,13 @@
                         var query = "<pre>" + chat.message.query + "</pre>";
                         messageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                     }
-                    messageHtml += '<h3> Answer</h3>' + marked.parse(chat.message.solution_part1);
+                    messageHtml += '<h3> Answer</h3><div class="markdown-content">' + marked.parse(chat.message.solution_part1) + '</div>';
                     if (chat.message.visualize_data.nodes.length > 0) {
                         var visualID = "graph-" + Date.now() + 1;
                         messageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
                     }
-                    messageHtml += '<h3> Explanation</h3>' + marked.parse(chat.message.explanation);
-                    messageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(chat.message.solution_part2) + '</div></div></div>';
+                    messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
+                    messageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
                     $('#chat-messages').append(messageHtml);
                     if (chat.message.graph_data.nodes.length > 0) {
                         setTimeout(function () {
@@ -222,10 +251,8 @@
                         }, 0);
                     }
                 }
-                
             });
         }
-
         function sendMessage() {
             var message = $('#message-input').val();
             if (message.trim() !== '') {
@@ -284,8 +311,12 @@
                 container: container,
                 width: container.offsetWidth,
                 height: container.offsetHeight,
+                autoFit: 'view',
                 layout: {
                     type: 'force',
+                    linkDistance: 50,
+                    kr: 40,
+                    preventoverlap: true,
                 },
                 behaviors: ['drag-node', 'zoom-canvas', 'drag-canvas'],
                 node: {
@@ -301,8 +332,20 @@
                         stroke: '#000000',
                     },
                 },
-            });
 
+            });
+            graphData.nodes.forEach(node => {
+                // 计算度
+                const degree = graphData.edges.reduce((acc, edge) => {
+                    if (edge.source === node.id || edge.target === node.id) {
+                        return acc + 1;
+                    }
+                    return acc;
+                }, 0);
+
+                // 根据度设置节点大小
+                node.size = 10 + degree * 10; // 基础大小为10，每度增加10
+            });
             graph.setData(graphData);
             graph.render();
         }
