@@ -231,43 +231,54 @@
                 if (chat.sender === 'user') {
                     messageHtml = '<div class="message user"><div class="message-content">' + chat.message + '</div></div>';
                     $('#chat-messages').append(messageHtml);
-                }
-                else if (chat.sender === 'bot') {
+                } else if (chat.sender === 'bot') {
                     messageHtml = '<div class="message bot"><div class="message-content">';
-
                     messageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
-                    if (chat.message.graph_data.nodes.length > 0) {
+
+                    if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
                         var graphId = "graph-" + Date.now();
                         var query = "<pre><code class=\"language-graphql\">" + chat.message.query + "</code></pre>";
                         messageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                     }
+
                     messageHtml += '<h3> Answer</h3><div class="markdown-content">' + marked.parse(chat.message.solution_part1) + '</div>';
-                    if (chat.message.visualize_data.nodes.length > 0) {
+
+                    if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
                         var visualID = "graph-" + Date.now() + 1;
                         messageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
                     }
+
                     messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
                     messageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
                     $('#chat-messages').append(messageHtml);
 
-                    if (chat.message.graph_data.nodes.length > 0) {
-                        setTimeout(function () {
-                            var container = document.getElementById(graphId);
-                            visualizeGraph(chat.message.graph_data, container);
-                        }, 0);
+                    if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
+                        safeVisualizeGraph(graphId, chat.message.graph_data);
                     }
-                    if (chat.message.visualize_data.nodes.length > 0) {
-                        setTimeout(function () {
-                            var container = document.getElementById(visualID);
-                            visualizeGraph(chat.message.visualize_data, container);
-                        }, 0);
-                    }
-                    $('pre code').each(function (i, block) {
-                        hljs.highlightElement(block); // 同样替换这里的方法
-                    });
 
+                    if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
+                        safeVisualizeGraph(visualID, chat.message.visualize_data);
+                    }
+
+                    $('pre code').each(function (i, block) {
+                        hljs.highlightElement(block);
+                    });
                 }
             });
+        }
+
+
+        function safeVisualizeGraph(elementId, graphData) {
+            var container = document.getElementById(elementId);
+            if (container) {
+                try {
+                    visualizeGraph(graphData, container);
+                } catch (e) {
+                    console.error("Failed to visualize graph for element #" + elementId, e);
+                }
+            } else {
+                console.error("Container element not found for #" + elementId);
+            }
         }
         function sendMessage() {
             var message = $('#message-input').val();
@@ -328,7 +339,6 @@
                 });
             }
         }
-
         function visualizeGraph(graphData, container) {
             const graph = new G6.Graph({
                 container: container,
@@ -343,7 +353,7 @@
                 },
                 behaviors: ['drag-node', 'zoom-canvas', 'drag-canvas'],
                 node: {
-                    size: 20,
+                    // size: 20, // 这里的默认大小现在将被覆盖
                     color: '#5B8FF9',
                     style: {
                         labelText: (d) => d.id,
@@ -355,23 +365,32 @@
                         stroke: '#000000',
                     },
                 },
-
             });
-            graphData.nodes.forEach(node => {
-                // 计算度
-                const degree = graphData.edges.reduce((acc, edge) => {
+
+            // 计算每个节点的度，并设置节点大小
+            const degrees = graphData.nodes.map(node => ({
+                id: node.id,
+                degree: graphData.edges.reduce((acc, edge) => {
                     if (edge.source === node.id || edge.target === node.id) {
-                        return acc + 1;
+                        return acc + 1; // 为每个连接到当前节点的边加一
                     }
                     return acc;
-                }, 0);
+                }, 0)
+            }));
 
-                // 根据度设置节点大小
-                node.size = 10 + degree * 10; // 基础大小为10，每度增加10
+            // 更新节点数据以反映节点的度
+            graphData.nodes.forEach(node => {
+                const nodeDegreeInfo = degrees.find(degreeInfo => degreeInfo.id === node.id);
+                node.size = 20 + nodeDegreeInfo.degree * 5; // 基础大小为10，每增加一个度，大小增加5
             });
+            graphData.nodes.forEach(node => {
+                console.log(graphData.nodes);
+            });
+
             graph.setData(graphData);
             graph.render();
         }
+
     });
 </script>
 
