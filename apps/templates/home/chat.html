@@ -339,6 +339,7 @@
                 });
             }
         }
+
         function visualizeGraph(graphData, container) {
             const graph = new G6.Graph({
                 container: container,
@@ -353,12 +354,12 @@
                 },
                 behaviors: ['drag-node', 'zoom-canvas', 'drag-canvas'],
                 node: {
-                    // size: 20, // 这里的默认大小现在将被覆盖
+                    // 移除此处的 size，使用下面的 getNodeStyle 方法动态设置
                     color: '#5B8FF9',
-                    style: {
-                        size: 30, 
-                        labelText: (d) => d.id,
-                    }
+                    style: (node) => ({
+                        size: node.style.size,  // 确保每个节点的 size 是动态更新的
+                        labelText: node.id.toString(),
+                    })
                 },
                 edge: {
                     type: 'line',
@@ -373,23 +374,22 @@
                 id: node.id,
                 degree: graphData.edges.reduce((acc, edge) => {
                     if (edge.source === node.id || edge.target === node.id) {
-                        return acc + 1; // 为每个连接到当前节点的边加一
+                        return acc + 1;  // 为每个连接到当前节点的边加一
                     }
                     return acc;
                 }, 0)
             }));
-            
-            graph.setData(graphData);
+
             // 更新节点数据以反映节点的度
             graphData.nodes.forEach(node => {
                 const nodeDegreeInfo = degrees.find(degreeInfo => degreeInfo.id === node.id);
-                node.style.size = 20 + nodeDegreeInfo.degree * 5; // 基础大小为10，每增加一个度，大小增加5
-            });
-            graphData.nodes.forEach(node => {
-                console.log(graphData.nodes);
+                node.style = {
+                    size: 20 + nodeDegreeInfo.degree * 5  // 基础大小为20，每增加一个度，大小增加5
+                };
             });
 
-            
+            // 设置数据并渲染图表
+            graph.setData(graphData);
             graph.render();
         }
 
