@@ -32,3 +32,6 @@ apps/static/assets/yarn.lock
 apps/static/assets/.temp
 
 apps/config.py
+
+# chat history
+/flask_session

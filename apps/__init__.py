@@ -80,9 +80,13 @@ def initialize_model(app):
         app.config['MODEL_VISUAL'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
 
 def initialize_neo4j(app):
-    uri = "bolt://localhost:7687"  # 根据需要替换为您的实际地址
+    # uri = "bolt://localhost:7687"  # 根据需要替换为您的实际地址
     username = "neo4j"
     password = "neo4j/pwd"
+    # app.config['NEO4J_DRIVER'] = GraphDatabase.driver(uri, auth=(username, password))
+    print(app.config.get('CURRENT_DATABASE', 'default'))
+    print(app.config["DATABASES_URI"])
+    uri = app.config["DATABASES_URI"][app.config.get('CURRENT_DATABASE', 'default')]
     app.config['NEO4J_DRIVER'] = GraphDatabase.driver(uri, auth=(username, password))
 
 def create_app(config):

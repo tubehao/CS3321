@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, jsonify, current_app, session
+from neo4j import GraphDatabase
 from flask_login import login_required, current_user
 import re
 import json
@@ -14,6 +15,7 @@ def index():
 @login_required
 def chat_history():
     chat_history = session.get(f'{current_user.id}_chat_history', [])
+    print(chat_history)
     return jsonify(chat_history)
 
 @blueprint.route('/set_database', methods=['POST'])
@@ -22,6 +24,8 @@ def set_database():
     data = request.get_json()
     selected_database = data['database']
     current_app.config['CURRENT_DATABASE'] = selected_database
+    uri = current_app.config["DATABASES_URI"][current_app.config.get('CURRENT_DATABASE', 'default')]
+    current_app.config['NEO4J_DRIVER'] = GraphDatabase.driver(uri)
     return jsonify({'status': 'success', 'selected_database': selected_database})
 
 @blueprint.route('/get_response', methods=['POST'])

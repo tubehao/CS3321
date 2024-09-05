@@ -356,6 +356,7 @@
                     // size: 20, // 这里的默认大小现在将被覆盖
                     color: '#5B8FF9',
                     style: {
+                        size: 30, 
                         labelText: (d) => d.id,
                     }
                 },
@@ -377,17 +378,18 @@
                     return acc;
                 }, 0)
             }));
-
+            
+            graph.setData(graphData);
             // 更新节点数据以反映节点的度
             graphData.nodes.forEach(node => {
                 const nodeDegreeInfo = degrees.find(degreeInfo => degreeInfo.id === node.id);
-                node.size = 20 + nodeDegreeInfo.degree * 5; // 基础大小为10，每增加一个度，大小增加5
+                node.style.size = 20 + nodeDegreeInfo.degree * 5; // 基础大小为10，每增加一个度，大小增加5
             });
             graphData.nodes.forEach(node => {
                 console.log(graphData.nodes);
             });
 
-            graph.setData(graphData);
+            
             graph.render();
         }
 
