@@ -18,6 +18,20 @@ def chat_history():
     print(chat_history)
     return jsonify(chat_history)
 
+@blueprint.route('/like_message', methods=['POST'])
+def like_message():
+    data = request.get_json()
+    message_id = data.get('message_id')
+    sender = data.get('sender')
+
+    # 假设我们将点赞存储在数据库或文件中
+    print(f"Message ID: {message_id}, Sender: {sender} liked")
+
+    # 这里您可以执行实际的点赞操作，例如更新数据库
+    # 返回成功响应
+    return jsonify({"status": "success", "message": "Liked successfully"})
+
+
 @blueprint.route('/set_database', methods=['POST'])
 @login_required
 def set_database():

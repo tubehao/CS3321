@@ -142,6 +142,17 @@
         background-color: #e7f3ff;
         color: black;
     }
+    .like-buttons {
+        display: flex;
+        justify-content: flex-start; /* 左对齐按钮 */
+        gap: 10px; /* 按钮之间的间隔 */
+        margin-top: 20px; /* 给按钮一些上边距，避免紧挨着文本 */
+    }
+
+    .like-button {
+        flex: 1; /* 使按钮尽量占满可用空间 */
+        max-width: 150px; /* 设置按钮最大宽度 */
+    }
 </style>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
 
@@ -311,8 +322,11 @@
                             botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
                         }
                         botMessageHtml += '<h3> Explanation</h3> ' + marked.parse(response.explanation);
+                        botMessageHtml += '<button class="btn btn-success like-button" data-message-id="' + response.id + '" data-sender="bot">Like</button>'; // Add Like button here
 
-                        botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) + '</div></div></div>';
+                        botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) ;
+                        botMessageHtml += '<button class="btn btn-success like-button" data-message-id="' + response.id + '" data-sender="gpt4">Like</button>'; // Add Like button for GPT4 part
+                        botMessageHtml += '</div></div></div></div>';
 
                         $('#chat-messages').append(botMessageHtml);
 
@@ -384,7 +398,7 @@
             graphData.nodes.forEach(node => {
                 const nodeDegreeInfo = degrees.find(degreeInfo => degreeInfo.id === node.id);
                 node.style = {
-                    size: 20 + nodeDegreeInfo.degree * 5  // 基础大小为20，每增加一个度，大小增加5
+                    size: Math.min(20 + nodeDegreeInfo.degree * 5, 50),  // 基础大小为20，每增加一个度，大小增加5
                 };
             });
 
@@ -394,6 +408,29 @@
         }
 
     });
+
+    $(document).ready(function () {
+        // 点击“Like”按钮时的处理
+        $('body').on('click', '.like-button', function () {
+            var messageId = $(this).data('message-id');
+            var sender = $(this).data('sender');
+            console.log('Liked message ID:', messageId, 'Sender:', sender);
+            // 发送点赞数据到后端（可以根据需求修改）
+            $.ajax({
+                url: '{{ url_for("chat.like_message") }}',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ message_id: messageId, sender: sender }),
+                success: function (response) {
+                    console.log('Like recorded:', response);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Failed to record like:", error);
+                }
+            });
+        });
+    });
+
 </script>
 
 {% endblock javascripts %}
