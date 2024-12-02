@@ -10,31 +10,16 @@
     }
 
     .markdown-content {
-        font-size: 22px;
-        /* 根据需要调整字体大小 */
+        font-size: 18px;
+        color: #333;
+        line-height: 1.6;
     }
 
-    h2 {
+    h2, h3 {
         font-family: 'Roboto', sans-serif;
         color: #2c3e50;
-        font-size: 32px;
-    }
-
-    h3 {
-        font-family: 'Roboto', sans-serif;
-        color: #2c3e50;
-        font-size: 28px;
-    }
-
-    li {
         margin-bottom: 10px;
-        font-size: 22px;
     }
-
-    p {
-        font-size: 22px;
-    }
-
 
     .chat-container {
         display: flex;
@@ -56,8 +41,6 @@
     .chat-input {
         border-top: 1px solid #ddd;
         padding: 10px;
-        /* display: flex;
-            justify-content: center; */
     }
 
     .message {
@@ -66,66 +49,67 @@
         display: flex;
         padding: 10px;
         border-radius: 10px;
-        font-size: 22px;
+        font-size: 18px;
     }
 
     .message.user {
         justify-content: flex-end;
+        background-color: white;
     }
 
     .message.user .message-content {
-        background-color: white;
-        display: inline-block;
+        background-color: #e0f7fa;
         padding: 10px;
         border-radius: 10px;
     }
 
     .message.bot {
         justify-content: flex-start;
-        background-color: white;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
     }
 
     .message.bot .message-content {
         display: flex;
         justify-content: space-between;
         width: 100%;
-        padding: 10px;
+        padding: 15px;
         border-radius: 10px;
     }
 
     .message.bot .column {
-        width: 50%;
-
-        /* 固定每一列的宽度为50% */
-        /* flex-grow: 0; */
-        /* 禁止列增长 */
-        /* flex-shrink: 0; */
-        /* 禁止列收缩 */
-        /* width: 49%; */
-        /* flex: 1; */
+        width: 48%;
         padding: 0 20px;
         position: relative;
     }
 
-    .message.bot .column+.column {
+    .message.bot .column + .column {
         border-left: 2px solid #ddd;
-        /* 分割线 */
-        margin-left: -2px;
-        /* 确保分割线居中 */
-        padding-left: 22px;
-        /* 调整左侧内边距，考虑分割线的宽度 */
+        padding-left: 20px;
     }
 
-    .message.bot .column h2 {
+    .message.bot h2 {
         text-align: center;
-        /* font-size: 18px; */
         font-weight: 600;
+        color: #2c3e50;
     }
 
     .graph-container {
         width: 100%;
         height: 300px;
-        /* Adjust the height as needed */
+    }
+
+    .like-buttons {
+        display: flex;
+        justify-content: flex-start;
+        gap: 10px;
+        margin-top: 20px;
+    }
+
+    .like-button {
+        flex: 1;
+        max-width: 150px;
     }
 
     .database-select-container {
@@ -141,17 +125,6 @@
         border-radius: 5px;
         background-color: #e7f3ff;
         color: black;
-    }
-    .like-buttons {
-        display: flex;
-        justify-content: flex-start; /* 左对齐按钮 */
-        gap: 10px; /* 按钮之间的间隔 */
-        margin-top: 20px; /* 给按钮一些上边距，避免紧挨着文本 */
-    }
-
-    .like-button {
-        flex: 1; /* 使按钮尽量占满可用空间 */
-        max-width: 150px; /* 设置按钮最大宽度 */
     }
 </style>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
@@ -244,7 +217,7 @@
                     $('#chat-messages').append(messageHtml);
                 } else if (chat.sender === 'bot') {
                     messageHtml = '<div class="message bot"><div class="message-content">';
-                    messageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
+                    messageHtml += '<div class="column text-column"><h2>Graph Talker</h2>';
 
                     if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
                         var graphId = "graph-" + Date.now();
@@ -260,7 +233,7 @@
                     }
 
                     messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
-                    messageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
+                    messageHtml += '</div><div class="column text-column"><h2>GPT-4</h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
                     $('#chat-messages').append(messageHtml);
 
                     if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
@@ -277,6 +250,7 @@
                 }
             });
         }
+
 
 
         function safeVisualizeGraph(elementId, graphData) {
@@ -297,6 +271,7 @@
                 var userMessageHtml = '<div class="message user"><div class="message-content">' + message + '</div></div>';
                 $('#chat-messages').append(userMessageHtml);
                 $('#message-input').val('');
+                
                 // 发送用户消息到后端
                 $.ajax({
                     url: '{{ url_for("chat.get_response") }}',
@@ -305,33 +280,29 @@
                     data: JSON.stringify({ message: message }),
                     success: function (response) {
                         var botMessageHtml = '<div class="message bot"><div class="message-content">';
-
-                        botMessageHtml += '<div class="column text-column"> <h2> Graph Talker </h2>';
+                        botMessageHtml += '<div class="column text-column"><h2>Graph Talker</h2>';
                         if (response.graph_data.nodes.length > 0) {
-                            var graphId = "graph-" + Date.now(); // 生成一个时间戳ID
-                            // query = "```" + "\n" + response.query + "\n" + "```";
+                            var graphId = "graph-" + Date.now(); 
                             var query = "<pre><code class=\"language-graphql\">" + response.query + "</code></pre>";
-
-                            console.log(query);
-                            botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge <br> ' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
+                            botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                         }
-                        botMessageHtml += '<h3> Answer</h3>';
-                        botMessageHtml += marked.parse(response.solution_part1);
+                        
+                        botMessageHtml += '<h3> Answer</h3>' + marked.parse(response.solution_part1);
+                        
                         if (response.visualize_data.nodes.length > 0) {
-                            var visualID = "graph-" + Date.now() + 1; // 生成一个时间戳ID
+                            var visualID = "graph-" + Date.now() + 1;
                             botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
                         }
-                        botMessageHtml += '<h3> Explanation</h3> ' + marked.parse(response.explanation);
+                        
+                        botMessageHtml += '<h3> Explanation</h3>' + marked.parse(response.explanation);
                         botMessageHtml += '<button class="btn btn-success like-button" data-message-id="' + response.id + '" data-sender="bot">Like</button>'; // Add Like button here
-
-                        botMessageHtml += '</div><div class="column text-column"> <h2> GPT4 </h2>' + marked.parse(response.solution_part2) ;
-                        botMessageHtml += '<button class="btn btn-success like-button" data-message-id="' + response.id + '" data-sender="gpt4">Like</button>'; // Add Like button for GPT4 part
-                        botMessageHtml += '</div></div></div></div>';
+                        botMessageHtml += '</div><div class="column text-column"><h2>GPT-4</h2>' + marked.parse(response.solution_part2);
+                        botMessageHtml += '<button class="btn btn-success like-button" data-message-id="' + response.id + '" data-sender="bot">Like</button>'; // Add Like button here
+                        botMessageHtml += '</div></div></div>';
 
                         $('#chat-messages').append(botMessageHtml);
 
-
-                        // 确保元素已被添加到 DOM 中后再执行 visualizeGraph
+                        // 图形渲染
                         if (response.graph_data.nodes.length > 0) {
                             setTimeout(function () {
                                 var container = document.getElementById(graphId);
@@ -345,10 +316,10 @@
                                 visualizeGraph(response.visualize_data, container);
                             }, 0);
                         }
-                        $('pre code').each(function (i, block) {
-                            hljs.highlightElement(block); // 同样替换这里的方法
-                        });
 
+                        $('pre code').each(function (i, block) {
+                            hljs.highlightElement(block);
+                        });
                     }
                 });
             }
