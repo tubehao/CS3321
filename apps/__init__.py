@@ -73,7 +73,8 @@ def initialize_model(app):
             device=1  # 如果没有GPU，设置为-1
         )
     elif "gpt" in model_id:
-        api_key = app.config['OPENAI_API_KEY']
+        # api_key = app.config['OPENAI_API_KEY']
+        api_key = os.environ.get('OPENAI_API_KEY')
         app.config['MODEL_PIPELINE'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
         app.config['MODEL_SOLUTION'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
         app.config['MODEL_PURE'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
