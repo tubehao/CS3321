@@ -31,6 +31,17 @@ def like_message():
     # 返回成功响应
     return jsonify({"status": "success", "message": "Liked successfully"})
 
+@blueprint.route('/chat/record_answer_choice', methods=['POST'])
+def record_answer_choice():
+    data = request.get_json()
+    message_id = data['message_id']
+    selected_answer = data['selected_answer']
+    
+    # 在此处记录用户选择，可以保存到数据库或日志文件
+    print(f"Message ID: {message_id}, User selected: {selected_answer}")
+    
+    # 返回成功的响应
+    return jsonify({'status': 'success', 'message': 'Answer choice recorded'})
 
 @blueprint.route('/set_database', methods=['POST'])
 @login_required

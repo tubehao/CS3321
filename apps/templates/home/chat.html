@@ -126,6 +126,30 @@
         background-color: #e7f3ff;
         color: black;
     }
+    .answer-selection {
+        margin-top: 15px;
+        padding: 10px;
+        background-color: white;
+        border-radius: 5px;
+        text-align: center;
+    }
+
+    .answer-selection p {
+        font-size: 16px;
+        margin-bottom: 10px;
+    }
+
+    .answer-selection button {
+        margin: 5px;
+        font-size: 14px;
+        padding: 8px 15px;
+        border-radius: 5px;
+    }
+
+    .answer-selection button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
 </style>
 <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
 
@@ -286,7 +310,7 @@
                             var query = "<pre><code class=\"language-graphql\">" + response.query + "</code></pre>";
                             botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                         }
-                        
+
                         botMessageHtml += '<h3> Answer</h3>' + marked.parse(response.solution_part1);
                         
                         if (response.visualize_data.nodes.length > 0) {
@@ -294,11 +318,16 @@
                             botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
                         }
                         
-                        botMessageHtml += '<h3> Explanation</h3>' + marked.parse(response.explanation);
-                        botMessageHtml += '<button class="btn btn-success like-button" data-message-id="' + response.id + '" data-sender="bot">Like</button>'; // Add Like button here
+                        botMessageHtml += '<h4> Explanation</h4>' + marked.parse(response.explanation);
                         botMessageHtml += '</div><div class="column text-column"><h2>GPT-4</h2>' + marked.parse(response.solution_part2);
-                        botMessageHtml += '<button class="btn btn-success like-button" data-message-id="' + response.id + '" data-sender="bot">Like</button>'; // Add Like button here
                         botMessageHtml += '</div></div></div>';
+
+                        // 在回答下方添加“Which answer do you prefer?”选择按钮
+                        botMessageHtml += '<div class="answer-selection">';
+                        botMessageHtml += '<h2>Which answer do you prefer?</h2>';
+                        botMessageHtml += '<button class="btn btn-primary" data-answer="Graph Talker" data-message-id="' + response.id + '">Graph Talker</button>';
+                        botMessageHtml += '<button class="btn btn-secondary" data-answer="GPT-4" data-message-id="' + response.id + '">GPT-4</button>';
+                        botMessageHtml += '</div>';
 
                         $('#chat-messages').append(botMessageHtml);
 
@@ -324,6 +353,7 @@
                 });
             }
         }
+
 
         function visualizeGraph(graphData, container) {
             const graph = new G6.Graph({
@@ -381,26 +411,34 @@
     });
 
     $(document).ready(function () {
-        // 点击“Like”按钮时的处理
-        $('body').on('click', '.like-button', function () {
-            var messageId = $(this).data('message-id');
-            var sender = $(this).data('sender');
-            console.log('Liked message ID:', messageId, 'Sender:', sender);
-            // 发送点赞数据到后端（可以根据需求修改）
-            $.ajax({
-                url: '{{ url_for("chat.like_message") }}',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ message_id: messageId, sender: sender }),
-                success: function (response) {
-                    console.log('Like recorded:', response);
-                },
-                error: function (xhr, status, error) {
-                    console.error("Failed to record like:", error);
-                }
-            });
+    // 处理点击“Which answer do you prefer?”选择按钮
+    $('body').on('click', '.answer-selection button', function () {
+        var selectedAnswer = $(this).data('answer'); // 获取按钮对应的答案（Graph Talker 或 GPT-4）
+        var messageId = $(this).data('message-id'); // 获取与该按钮相关联的消息ID
+        
+        console.log('User selected answer: ' + selectedAnswer + ' for message ID: ' + messageId);
+
+        // 发送用户的选择到后端（根据需求修改）
+        $.ajax({
+            url: '{{ url_for("chat.record_answer_choice") }}', // 修改为实际的后端 URL
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ message_id: messageId, selected_answer: selectedAnswer }),
+            success: function (response) {
+                console.log('Answer choice recorded:', response);
+                // 可选：提供用户反馈，告诉他们选择已记录
+                // alert('Your preference for "' + selectedAnswer + '" has been recorded.');
+            },
+            error: function (xhr, status, error) {
+                console.error("Failed to record answer choice:", error);
+            }
         });
+
+        // 禁用按钮防止多次选择
+        $(this).prop('disabled', true);
     });
+});
+
 
 </script>
 
