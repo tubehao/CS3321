@@ -4,16 +4,29 @@ Copyright (c) 2019 - present AppSeed.us
 """
 
 from apps.home import blueprint
-from flask import render_template, request
-from flask_login import login_required
 from jinja2 import TemplateNotFound
 
 
-@blueprint.route('/index')
-# @login_required
-def index():
+from flask import Blueprint, render_template, request, jsonify, current_app, session
+from neo4j import GraphDatabase
+from flask_login import login_required, current_user
+import re
+import json
 
+blueprint = Blueprint('home', __name__) # Already registered in apps/__init__.py
+
+@blueprint.route('/index')
+@login_required
+def index():
     return render_template('home/index.html', segment='index')
+
+
+@blueprint.route('/send_query', methods=['POST'])
+@login_required
+def send_query():
+    print("send_query")
+    return jsonify({'status': 'Send Query'})
+
 
 
 @blueprint.route('/<template>')

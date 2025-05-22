@@ -11,6 +11,7 @@ from langchain_openai import ChatOpenAI
 from langchain_huggingface import ChatHuggingFace
 from flask_session import Session  # 导入 Flask-Session
 
+from openai import OpenAI
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -47,45 +48,53 @@ def configure_database(app):
 
 def initialize_model(app):
     model_id = app.config['MODEL_ID']
-    if "llama" in model_id:
-        app.config['MODEL_PIPELINE'] = ChatHuggingFace(
-            "text-generation",
-            model=model_id,
-            tokenizer=model_id,
-            device=0  # 如果没有GPU，设置为-1
-        )
-        app.config['MODEL_SOLUTION'] = ChatHuggingFace(
-            "text-generation",
-            model=model_id,
-            tokenizer=model_id,
-            device=2  # 如果没有GPU，设置为-1
-        )
-        app.config['MODEL_PURE'] = ChatHuggingFace(
-            "text-generation",
-            model=model_id,
-            tokenizer=model_id,
-            device=1  # 如果没有GPU，设置为-1
-        )
-        app.config['MODEL_VISUAL'] = ChatHuggingFace(
-            "text-generation",
-            model=model_id,
-            tokenizer=model_id,
-            device=1  # 如果没有GPU，设置为-1
-        )
-    elif "gpt" in model_id:
+    # if "llama" in model_id:
+    #     app.config['MODEL_PIPELINE'] = ChatHuggingFace(
+    #         "text-generation",
+    #         model=model_id,
+    #         tokenizer=model_id,
+    #         device=0  # 如果没有GPU，设置为-1
+    #     )
+    #     app.config['MODEL_SOLUTION'] = ChatHuggingFace(
+    #         "text-generation",
+    #         model=model_id,
+    #         tokenizer=model_id,
+    #         device=2  # 如果没有GPU，设置为-1
+    #     )
+    #     app.config['MODEL_PURE'] = ChatHuggingFace(
+    #         "text-generation",
+    #         model=model_id,
+    #         tokenizer=model_id,
+    #         device=1  # 如果没有GPU，设置为-1
+    #     )
+    #     app.config['MODEL_VISUAL'] = ChatHuggingFace(
+    #         "text-generation",
+    #         model=model_id,
+    #         tokenizer=model_id,
+    #         device=1  # 如果没有GPU，设置为-1
+    #     )
+    if "gpt" in model_id:
         api_key = app.config['OPENAI_API_KEY']
         # api_key = os.environ.get('OPENAI_API_KEY')
         app.config['MODEL_PIPELINE'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
-        app.config['MODEL_SOLUTION'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
-        app.config['MODEL_PURE'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
-        app.config['MODEL_VISUAL'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        # app.config['MODEL_SOLUTION'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        # app.config['MODEL_PURE'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+        # app.config['MODEL_VISUAL'] = ChatOpenAI(api_key=api_key, model="gpt-4o-mini")
+    elif "qwen" in model_id:
+        api_key = app.config['APIKEY']
+        app.config['MODEL_PIPELINE'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+        # app.config['MODEL_SOLUTION'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+        # app.config['MODEL_PURE'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+        # app.config['MODEL_VISUAL'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+    else:
+        raise ValueError("Unsupported model type. Please use a valid model ID (gpt).")
 
 def initialize_neo4j(app):
     # uri = "bolt://localhost:7687"  # 根据需要替换为您的实际地址
-    username = "neo4j"
-    password = "neo4j/pwd"
+    username = ""
+    password = ""
     # app.config['NEO4J_DRIVER'] = GraphDatabase.driver(uri, auth=(username, password))
-    print(app.config.get('CURRENT_DATABASE', 'default'))
+    print("CURRENT_DATABASE: ", app.config.get('CURRENT_DATABASE', 'default'))
     print(app.config["DATABASES_URI"])
     uri = app.config["DATABASES_URI"][app.config.get('CURRENT_DATABASE', 'default')]
     app.config['NEO4J_DRIVER'] = GraphDatabase.driver(uri, auth=(username, password))

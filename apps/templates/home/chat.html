@@ -79,7 +79,7 @@
     }
 
     .message.bot .column {
-        width: 48%;
+        width: 96%;
         padding: 0 20px;
         position: relative;
     }
@@ -171,7 +171,8 @@
         <div class="input-group">
             <input type="text" class="form-control" placeholder="Type a message" id="message-input">
             <div class="input-group-append">
-                <button class="btn btn-primary" type="button" id="send-button">Send</button>
+                <button class="btn btn-primary me-2" type="button" id="send-button">Send</button>
+                <button class="btn btn-primary" type="button" id="clear-button">Clear</button>
             </div>
         </div>
     </div>
@@ -198,6 +199,10 @@
 
         $('#send-button').on('click', function () {
             sendMessage();
+        });
+
+        $('#clear-button').on('click', function () {
+            clearMessage();
         });
 
         $('#message-input').on('keypress', function (e) {
@@ -241,7 +246,7 @@
                     $('#chat-messages').append(messageHtml);
                 } else if (chat.sender === 'bot') {
                     messageHtml = '<div class="message bot"><div class="message-content">';
-                    messageHtml += '<div class="column text-column"><h2>Graph Talker</h2>';
+                    messageHtml += '<div class="column text-column">';
 
                     if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
                         var graphId = "graph-" + Date.now();
@@ -249,24 +254,26 @@
                         messageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                     }
 
-                    messageHtml += '<h3> Answer</h3><div class="markdown-content">' + marked.parse(chat.message.solution_part1) + '</div>';
+                    // messageHtml += '<h3> Answer</h3><div class="markdown-content">' + marked.parse(chat.message.solution_part1) + '</div>';
 
-                    if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
-                        var visualID = "graph-" + Date.now() + 1;
-                        messageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
-                    }
+                    // if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
+                    //     var visualID = "graph-" + Date.now() + 1;
+                    //     messageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
+                    // }
 
-                    messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
-                    messageHtml += '</div><div class="column text-column"><h2>GPT-4</h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
+                    // messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
+                    // messageHtml += '</div><div class="column text-column"><h2>GPT-4</h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
+                    messageHtml += '</div></div></div>';
                     $('#chat-messages').append(messageHtml);
 
-                    if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
+                    // if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
+                    if (Array.isArray(chat.message.graph_data?.edges) && chat.message.graph_data.edges.length > 0) {
                         safeVisualizeGraph(graphId, chat.message.graph_data);
                     }
 
-                    if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
-                        safeVisualizeGraph(visualID, chat.message.visualize_data);
-                    }
+                    // if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
+                    //     safeVisualizeGraph(visualID, chat.message.visualize_data);
+                    // }
 
                     $('pre code').each(function (i, block) {
                         hljs.highlightElement(block);
@@ -289,6 +296,17 @@
                 console.error("Container element not found for #" + elementId);
             }
         }
+        function clearMessage() {
+            $.ajax({
+                url: '{{ url_for("chat.clear_history") }}',
+                type: 'POST',
+                contentType: 'application/json',
+                success: function (response) {
+                    $('#chat-messages').empty();
+                    // console.log('Chat history cleared:', response);
+                },
+            })
+        }
         function sendMessage() {
             var message = $('#message-input').val();
             if (message.trim() !== '') {
@@ -304,47 +322,48 @@
                     data: JSON.stringify({ message: message }),
                     success: function (response) {
                         var botMessageHtml = '<div class="message bot"><div class="message-content">';
-                        botMessageHtml += '<div class="column text-column"><h2>Graph Talker</h2>';
-                        if (response.graph_data.nodes.length > 0) {
+                        botMessageHtml += '<div class="column text-column">';
+                        if (Array.isArray(response.graph_data?.nodes) && response.graph_data.nodes.length > 0) {
                             var graphId = "graph-" + Date.now(); 
                             var query = "<pre><code class=\"language-graphql\">" + response.query + "</code></pre>";
                             botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                         }
 
-                        botMessageHtml += '<h3> Answer</h3>' + marked.parse(response.solution_part1);
+                        // botMessageHtml += '<h3> Answer</h3>' + marked.parse(response.solution_part1);
                         
-                        if (response.visualize_data.nodes.length > 0) {
-                            var visualID = "graph-" + Date.now() + 1;
-                            botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
-                        }
+                        // if (response.visualize_data.nodes.length > 0) {
+                        //     var visualID = "graph-" + Date.now() + 1;
+                        //     botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
+                        // }
                         
-                        botMessageHtml += '<h4> Explanation</h4>' + marked.parse(response.explanation);
-                        botMessageHtml += '</div><div class="column text-column"><h2>GPT-4</h2>' + marked.parse(response.solution_part2);
+                        // botMessageHtml += '<h4> Explanation</h4>' + marked.parse(response.explanation);
+                        // botMessageHtml += '</div><div class="column text-column"><h2>GPT-4</h2>' + marked.parse(response.solution_part2);
+                        // botMessageHtml += '</div></div></div>';
                         botMessageHtml += '</div></div></div>';
 
                         // 在回答下方添加“Which answer do you prefer?”选择按钮
-                        botMessageHtml += '<div class="answer-selection">';
-                        botMessageHtml += '<h2>Which answer do you prefer?</h2>';
-                        botMessageHtml += '<button class="btn btn-primary" data-answer="Graph Talker" data-message-id="' + response.id + '">Graph Talker</button>';
-                        botMessageHtml += '<button class="btn btn-secondary" data-answer="GPT-4" data-message-id="' + response.id + '">GPT-4</button>';
-                        botMessageHtml += '</div>';
+                        // botMessageHtml += '<div class="answer-selection">';
+                        // botMessageHtml += '<h2>Which answer do you prefer?</h2>';
+                        // botMessageHtml += '<button class="btn btn-primary" data-answer="Graph Talker" data-message-id="' + response.id + '">Graph Talker</button>';
+                        // botMessageHtml += '<button class="btn btn-secondary" data-answer="GPT-4" data-message-id="' + response.id + '">GPT-4</button>';
+                        // botMessageHtml += '</div>';
 
                         $('#chat-messages').append(botMessageHtml);
 
                         // 图形渲染
-                        if (response.graph_data.nodes.length > 0) {
+                        if (Array.isArray(response.graph_data?.nodes) && response.graph_data.nodes.length > 0) {
                             setTimeout(function () {
                                 var container = document.getElementById(graphId);
                                 visualizeGraph(response.graph_data, container);
                             }, 0);
                         }
 
-                        if (response.visualize_data.nodes.length > 0) {
-                            setTimeout(function () {
-                                var container = document.getElementById(visualID);
-                                visualizeGraph(response.visualize_data, container);
-                            }, 0);
-                        }
+                        // if (response.visualize_data.nodes.length > 0) {
+                        //     setTimeout(function () {
+                        //         var container = document.getElementById(visualID);
+                        //         visualizeGraph(response.visualize_data, container);
+                        //     }, 0);
+                        // }
 
                         $('pre code').each(function (i, block) {
                             hljs.highlightElement(block);
@@ -410,34 +429,34 @@
 
     });
 
-    $(document).ready(function () {
-    // 处理点击“Which answer do you prefer?”选择按钮
-    $('body').on('click', '.answer-selection button', function () {
-        var selectedAnswer = $(this).data('answer'); // 获取按钮对应的答案（Graph Talker 或 GPT-4）
-        var messageId = $(this).data('message-id'); // 获取与该按钮相关联的消息ID
+//     $(document).ready(function () {
+//     // 处理点击“Which answer do you prefer?”选择按钮
+//     $('body').on('click', '.answer-selection button', function () {
+//         var selectedAnswer = $(this).data('answer'); // 获取按钮对应的答案（Graph Talker 或 GPT-4）
+//         var messageId = $(this).data('message-id'); // 获取与该按钮相关联的消息ID
         
-        console.log('User selected answer: ' + selectedAnswer + ' for message ID: ' + messageId);
+//         console.log('User selected answer: ' + selectedAnswer + ' for message ID: ' + messageId);
 
-        // 发送用户的选择到后端（根据需求修改）
-        $.ajax({
-            url: '{{ url_for("chat.record_answer_choice") }}', // 修改为实际的后端 URL
-            type: 'POST',
-            contentType: 'application/json',
-            data: JSON.stringify({ message_id: messageId, selected_answer: selectedAnswer }),
-            success: function (response) {
-                console.log('Answer choice recorded:', response);
-                // 可选：提供用户反馈，告诉他们选择已记录
-                // alert('Your preference for "' + selectedAnswer + '" has been recorded.');
-            },
-            error: function (xhr, status, error) {
-                console.error("Failed to record answer choice:", error);
-            }
-        });
+//         // 发送用户的选择到后端（根据需求修改）
+//         $.ajax({
+//             url: '{{ url_for("chat.record_answer_choice") }}', // 修改为实际的后端 URL
+//             type: 'POST',
+//             contentType: 'application/json',
+//             data: JSON.stringify({ message_id: messageId, selected_answer: selectedAnswer }),
+//             success: function (response) {
+//                 console.log('Answer choice recorded:', response);
+//                 // 可选：提供用户反馈，告诉他们选择已记录
+//                 // alert('Your preference for "' + selectedAnswer + '" has been recorded.');
+//             },
+//             error: function (xhr, status, error) {
+//                 console.error("Failed to record answer choice:", error);
+//             }
+//         });
 
-        // 禁用按钮防止多次选择
-        $(this).prop('disabled', true);
-    });
-});
+//         // 禁用按钮防止多次选择
+//         $(this).prop('disabled', true);
+//     });
+// });
 
 
 </script>
