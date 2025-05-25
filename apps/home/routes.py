@@ -56,7 +56,7 @@ def send_query():
     session[f'{current_user.id}_query_history'] = query_history
 
     # print(query_results[0])
-    print(query_results)
+    # print(query_results)
     if isinstance(query_results, list) and len(query_results) > 0:
         return jsonify({
             "query_results": query_results[0],
