@@ -5,31 +5,118 @@
 <!-- Specific Page CSS goes HERE  -->
 {% block stylesheets %}
 <style>
-  .chat-container {
-    display: flex;
-    flex-direction: column;
-    height: 80vh;
-    max-height: 80vh;
-    overflow: hidden;
-  }
-  .chat-input {
-      border-top: 1px solid #ddd;
-      padding: 10px;
-  }
+    .chat-container {
+        /* display: flex;
+        flex-direction: column; */
+        /* height: 95vh; */
+        overflow: hidden;
+    }
+    .chat-body {
+        /* flex: 1; */
+        height: 80vh;
+        display: flex;
+        overflow: hidden;
+    }
+    .chat-input {
+        flex: 2;
+        /* width: 40%; */
+        border-top: 1px solid #ddd;
+        padding: 10px;
+        justify-content: center;
+        align-items: center;
+    }
+    .EasyMDEContainer {
+        width: 100%;
+        height: 90%;
+    }
+    .CodeMirror {
+        height: 90%;
+        /* min-height: 80%; */
+    }
+    .input-group-append {
+        margin-top: 0.5rem; /* 控制按钮组在换行后与输入框的间距 */
+    }
+    .message {
+        margin-bottom: 15px;
+        width: 100%;
+        display: flex;
+        padding: 10px;
+        border-radius: 10px;
+        font-size: 18px;
+    }
+    .message.user {
+        justify-content: flex-end;
+        background-color: white;
+    }
+    .message.user .message-content {
+        background-color: #e0f7fa;
+        padding: 10px;
+        border-radius: 10px;
+    }
+    .message.database {
+        height: 100%;
+        justify-content: flex-start;
+        background-color: #fff;
+        border: 1px solid #ddd;
+        box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    }
+    .message.database .message-content {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        padding: 15px;
+        border-radius: 10px;
+    }
+    .message.database .column {
+        width: 96%;
+        padding: 0 10px;
+        position: relative;
+    }
+    .message.database .column + .column {
+        border-left: 2px solid #ddd;
+        padding-left: 10px;
+    }
+    .message.database h2 {
+        text-align: center;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    .graph-container {
+        width: 100%;
+        height: 90%;
+    }
+    .chat-messages {
+        flex: 3;
+        height: 100%;
+        overflow-y: auto;
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
 </style>
+<link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/styles/default.min.css">
+<link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">
+
 {% endblock stylesheets %}
 
 {% block content %}
 <div class="container-fluid chat-container">
-  <div class="chat-input">
-      <div class="input-group">
-          <input type="text" class="form-control" placeholder="Graph Query Language" id="message-input">
-          <div class="input-group-append">
-              <button class="btn btn-primary me-2" type="button" id="send-button">Query</button>
-              <button class="btn btn-primary" type="button" id="clear-button">Clear</button>
-          </div>
-      </div>
-  </div>
+    <div class="chat-body">
+        <div class="chat-input p-3">
+            <div class="mb-2">
+                <textarea id="markdown-editor"></textarea>
+            </div>
+            <!-- <input type="text" class="form-control mb-2" placeholder="Graph Query Language" id="message-input"> -->
+            <div class="input-group-append d-flex gap-2">
+                <button class="btn btn-primary" type="button" id="send-button">Query</button>
+                <button class="btn btn-primary" type="button" id="clear-button">Clear</button>
+            </div>
+        </div>
+        <div class="chat-messages" id="chat-messages">
+            <!-- Messages will be dynamically inserted here -->
+        </div>
+    </div>
 </div>
 {% endblock content %}
 
@@ -40,20 +127,207 @@
 <script src="https://unpkg.com/@antv/g6@5/dist/g6.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/highlight.min.js"></script>
 <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.7.0/languages/graphql.min.js"></script>
+<script src="https://unpkg.com/easymde/dist/easymde.min.js"></script>
+  
 
 <script>
-    $(document).ready(function () {
-        $('#send-button').on('click', function () {
-          $.ajax({
-                url: '{{ url_for("home.send_query") }}',
-                type: 'POST',
-                contentType: 'application/json',
-                success: function (response) {
-                    console.log('Send Query', response);
-                },
-          })
+    const easyMDE = new EasyMDE({
+        element: document.getElementById("markdown-editor"),
+        placeholder: "Write your **GQL** here...",
+        spellChecker: false,
+        autosave: {
+        enabled: false,
+        },
+    });
+    document.addEventListener('DOMContentLoaded', (event) => {
+        document.querySelectorAll('pre code').forEach((block) => {
+            hljs.highlightElement(block);
         });
     });
+  $(document).ready(function () {
+    //   loadQueryHistory();
+
+      $('#send-button').on('click', function () {
+            $('#chat-messages').empty();
+            sendQuery();
+      });
+
+      $('#clear-button').on('click', function () {
+            clearQuery();
+      });
+
+    //   $('#message-input').on('keypress', function (e) {
+    //       if (e.which == 13) {
+    //           sendQuery();
+    //       }
+    //   });
+
+      function loadQueryHistory() {
+          $.ajax({
+              url: '{{ url_for("home.query_history") }}',
+              type: 'GET',
+              success: function (queryHistory) {
+                  renderQueryHistory(queryHistory);
+              },
+              error: function (xhr, status, error) {
+                  console.error("Failed to load query history:", error);
+              }
+          });
+      }
+
+      function renderQueryHistory(queryHistory) {
+          queryHistory.forEach(function (queryEntry) {
+              var messageHtml;
+            //   if (queryEntry.sender === 'user') {
+            //       messageHtml = `
+            //         <div class="message user">
+            //           <div class="message-content">${queryEntry.message}</div>
+            //         </div>`;
+            //       $('#chat-messages').append(messageHtml);
+            //   }
+                if (queryEntry.sender === 'database') {
+                    messageHtml = `
+                    <div class="message database">
+                        <div class="message-content">
+                        <div class="column text-column">`;
+
+                    if (queryEntry.message.query_results.nodes.length > 0 && queryEntry.message.query_results.edges.length > 0) {
+                        var graphId = "graph-" + Date.now();
+                        //   var query = "<pre><code class=\"language-graphql\">" + queryEntry.message.query_results + "</code></pre>";
+                        messageHtml += '<h3> Query Result</h3> <div class="graph-container" id="' + graphId + '"></div>';
+                    }
+                    messageHtml += '</div></div></div>';
+                    $('#chat-messages').append(messageHtml);
+
+                    if (queryEntry.message.query_results.nodes.length > 0 && queryEntry.message.query_results.edges.length > 0) {
+                        safeVisualizeGraph(graphId, queryEntry.message.query_results);
+                    }
+
+                    $('pre code').each(function (i, block) {
+                        hljs.highlightElement(block);
+                    });
+                }
+          });
+      }
+
+      function safeVisualizeGraph(elementId, graphData) {
+          var container = document.getElementById(elementId);
+          if (container) {
+              try {
+                  visualizeGraph(graphData, container);
+              } catch (e) {
+                  console.error("Failed to visualize graph for element #" + elementId, e);
+              }
+          } else {
+              console.error("Container element not found for #" + elementId);
+          }
+      }
+
+      function clearQuery() {
+          $.ajax({
+              url: '{{ url_for("home.clear_query") }}',
+              type: 'POST',
+              contentType: 'application/json',
+              success: function (response) {
+                    $('#chat-messages').empty();
+                    easyMDE.value(''); // Clear the EasyMDE editor
+              },
+          })
+      }
+
+      function sendQuery() {
+        //   var message = $('#message-input').val();
+          var message = easyMDE.value();
+          if (message.trim() !== '') {
+            //   var userMessageHtml = '<div class="message user"><div class="message-content">' + message + '</div></div>';
+            //   $('#chat-messages').append(userMessageHtml);
+            //   $('#message-input').val('');
+
+              $.ajax({
+                  url: '{{ url_for("home.send_query") }}',
+                  type: 'POST',
+                  contentType: 'application/json',
+                  data: JSON.stringify({ message: message }),
+                  success: function (response) {
+                      var databaseMessageHtml = '<div class="message database"><div class="message-content">';
+                      databaseMessageHtml += '<div class="column text-column">';
+                      if (response.query_results.nodes.length > 0 && response.query_results.edges.length > 0) {
+                          var graphId = "graph-" + Date.now(); 
+                        //   var query = "<pre><code class=\"language-graphql\">" + response.query + "</code></pre>";
+                          databaseMessageHtml += '<h3> Query Result</h3><div class="graph-container" id="' + graphId + '"></div>';
+                      }
+                      databaseMessageHtml += '</div></div></div>';
+
+                      $('#chat-messages').append(databaseMessageHtml);
+
+                      if (response.query_results.nodes.length > 0 && response.query_results.edges.length > 0) {
+                          setTimeout(function () {
+                              var container = document.getElementById(graphId);
+                              visualizeGraph(response.query_results, container);
+                          }, 0);
+                      }
+
+                      $('pre code').each(function (i, block) {
+                          hljs.highlightElement(block);
+                      });
+                  }
+              });
+          }
+      }
+
+      function visualizeGraph(graphData, container) {
+        const graph = new G6.Graph({
+            container: container,
+            width: container.offsetWidth,
+            height: container.offsetHeight,
+            autoFit: 'view',
+            layout: {
+                type: 'force',
+                linkDistance: 50,
+                kr: 40,
+                preventoverlap: true,
+            },
+            behaviors: ['drag-node', 'zoom-canvas', 'drag-canvas'],
+            node: {
+                // 移除此处的 size，使用下面的 getNodeStyle 方法动态设置
+                color: '#5B8FF9',
+                style: (node) => ({
+                    size: node.style.size,  // 确保每个节点的 size 是动态更新的
+                    labelText: node.label.toString().substring(0, 20),
+                })
+            },
+            edge: {
+                type: 'line',
+                style: {
+                    stroke: '#000000',
+                },
+            },
+        });
+
+        // 计算每个节点的度，并设置节点大小
+        const degrees = graphData.nodes.map(node => ({
+            id: node.id,
+            degree: graphData.edges.reduce((acc, edge) => {
+                if (edge.source === node.id || edge.target === node.id) {
+                    return acc + 1;  // 为每个连接到当前节点的边加一
+                }
+                return acc;
+            }, 0)
+        }));
+
+        // 更新节点数据以反映节点的度
+        graphData.nodes.forEach(node => {
+            const nodeDegreeInfo = degrees.find(degreeInfo => degreeInfo.id === node.id);
+            node.style = {
+                size: Math.min(20 + nodeDegreeInfo.degree * 5, 50),  // 基础大小为20，每增加一个度，大小增加5
+            };
+        });
+
+        // 设置数据并渲染图表
+        graph.setData(graphData);
+        graph.render();
+      }
+  });
 </script>
  
 {% endblock javascripts %}
