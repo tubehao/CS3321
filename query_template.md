@@ -1,7 +1,7 @@
 1. 查询作者+论文
 ```
 MATCH (a:Author)-[:AUTHORS]->(p:Paper)
-WHERE a.name = "Jie Guo"
+WHERE a.name = "Jie Guo 0011"
 WITH a, p
 LIMIT 20
 RETURN
@@ -13,7 +13,7 @@ collect(DISTINCT {source: a.author_id, target: p.publication_id, label: 'AUTHORS
 2. 查询作者+论文+合作者
 ```
 MATCH (a:Author)-[:AUTHORS]->(p:Paper)
-WHERE a.name = "Jie Guo"
+WHERE a.name = "Jie Guo 0011"
 WITH a, p
 LIMIT 10
 

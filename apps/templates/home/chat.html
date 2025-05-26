@@ -254,26 +254,25 @@
                         messageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                     }
 
-                    // messageHtml += '<h3> Answer</h3><div class="markdown-content">' + marked.parse(chat.message.solution_part1) + '</div>';
+                    messageHtml += '<h3> Answer</h3><div class="markdown-content">' + marked.parse(chat.message.solution_part1) + '</div>';
 
-                    // if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
-                    //     var visualID = "graph-" + Date.now() + 1;
-                    //     messageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
-                    // }
+                    if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
+                        var visualID = "graph-" + Date.now() + 1;
+                        messageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
+                    }
 
-                    // messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
+                    messageHtml += '<h3> Explanation</h3><div class="markdown-content">' + marked.parse(chat.message.explanation) + '</div>';
                     // messageHtml += '</div><div class="column text-column"><h2>GPT-4</h2><div class="markdown-content">' + marked.parse(chat.message.solution_part2) + '</div></div></div></div>';
                     messageHtml += '</div></div></div>';
                     $('#chat-messages').append(messageHtml);
 
-                    // if (Array.isArray(chat.message.graph_data?.nodes) && chat.message.graph_data.nodes.length > 0) {
                     if (Array.isArray(chat.message.graph_data?.edges) && chat.message.graph_data.edges.length > 0) {
                         safeVisualizeGraph(graphId, chat.message.graph_data);
                     }
 
-                    // if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
-                    //     safeVisualizeGraph(visualID, chat.message.visualize_data);
-                    // }
+                    if (Array.isArray(chat.message.visualize_data?.nodes) && chat.message.visualize_data.nodes.length > 0) {
+                        safeVisualizeGraph(visualID, chat.message.visualize_data);
+                    }
 
                     $('pre code').each(function (i, block) {
                         hljs.highlightElement(block);
@@ -329,16 +328,15 @@
                             botMessageHtml += '<h3>Query</h3> We can use the following query in database to get knowledge:<br>' + query + '<h4> Query Result</h4> <div class="graph-container" id="' + graphId + '"></div>';
                         }
 
-                        // botMessageHtml += '<h3> Answer</h3>' + marked.parse(response.solution_part1);
+                        botMessageHtml += '<h3> Answer</h3>' + marked.parse(response.solution_part1);
                         
-                        // if (response.visualize_data.nodes.length > 0) {
-                        //     var visualID = "graph-" + Date.now() + 1;
-                        //     botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
-                        // }
+                        if (response.visualize_data.nodes.length > 0) {
+                            var visualID = "graph-" + Date.now() + 1;
+                            botMessageHtml += '<div class="graph-container" id="' + visualID + '"></div>';
+                        }
                         
-                        // botMessageHtml += '<h4> Explanation</h4>' + marked.parse(response.explanation);
+                        botMessageHtml += '<h4> Explanation</h4>' + marked.parse(response.explanation);
                         // botMessageHtml += '</div><div class="column text-column"><h2>GPT-4</h2>' + marked.parse(response.solution_part2);
-                        // botMessageHtml += '</div></div></div>';
                         botMessageHtml += '</div></div></div>';
 
                         // 在回答下方添加“Which answer do you prefer?”选择按钮
@@ -358,12 +356,12 @@
                             }, 0);
                         }
 
-                        // if (response.visualize_data.nodes.length > 0) {
-                        //     setTimeout(function () {
-                        //         var container = document.getElementById(visualID);
-                        //         visualizeGraph(response.visualize_data, container);
-                        //     }, 0);
-                        // }
+                        if (Array.isArray(response.visualize_data?.nodes) && response.visualize_data.nodes.length > 0) {
+                            setTimeout(function () {
+                                var container = document.getElementById(visualID);
+                                visualizeGraph(response.visualize_data, container);
+                            }, 0);
+                        }
 
                         $('pre code').each(function (i, block) {
                             hljs.highlightElement(block);

@@ -2,7 +2,6 @@
 
 {% block title %} Tables {% endblock %}
 
-<!-- Specific Page CSS goes HERE  -->
 {% block stylesheets %}
     <!-- Bootstrap CSS -->
     <!-- <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet"> -->
@@ -28,7 +27,6 @@
           <div class="modal-body">
             <form id="uploadForm" method="post" enctype="multipart/form-data">
               <div class="form-group">
-                <!-- <label for="fileInput">选择文件</label> -->
                 <input type="file" class="form-control-file" id="fileInput" name="file">
               </div>
             </form>
@@ -41,7 +39,7 @@
       </div>
     </div>
 
-    <!-- Yago表格 -->
+    <!-- 数据库表格 -->
     <div class="row">
       <div class="col-12">
         <div class="card my-4">
@@ -55,18 +53,15 @@
               <table class="table align-items-center mb-0">
                 <thead>
                   <tr>
-                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-start">
-                      Name
-                    </th>
+                    <th class="text-uppercase text-secondary text-xxs font-weight-bolder opacity-7 text-start">Name</th>
                     <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
                       <div class="d-flex justify-content-center">SUBJECT</div>
                     </th>
                     <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
                       <div class="d-flex justify-content-center">Edge count</div>
                     </th>
-                    
                     <th class="text-center text-uppercase text-secondary text-xxs font-weight-bolder opacity-7">
-                      <div class="d-flex justify-content-center">Edge count</div>
+                      <div class="d-flex justify-content-center">Details</div>
                     </th>
                     <th class="text-secondary opacity-7 text-center">
                       <div class="d-flex justify-content-center"></div>
@@ -74,9 +69,11 @@
                   </tr>
                 </thead>
                 <tbody>
+                  <!-- DBLP -->
                   <tr>
                     <td class="align-middle text-start">
-                      <h6 class="mb-0 text-sm">DBLP</h6> </td>
+                      <h6 class="mb-0 text-sm">DBLP</h6>
+                    </td>
                     <td class="align-middle text-center text-sm">
                       <div class="d-flex justify-content-center">
                         <span class="badge badge-sm bg-gradient-success">Coauthor Relation</span>
@@ -88,20 +85,24 @@
                       </div>
                     </td>
                     <td class="align-middle text-center text-sm">
-                      <div class="d-flex justify-content-center">
-                        <span class="badge badge-sm bg-gradient-success">24093511</span>
+                      <div class="d-flex justify-content-center flex-wrap gap-2" style="min-width:180px;">
+                        <span class="badge badge-sm bg-gradient-success">Nodes: 28,551,272</span>
+                        <span class="badge badge-sm bg-gradient-success">Authors: 3,739,681</span>
+                        <span class="badge badge-sm bg-gradient-success">Papers: 11,076,392</span>
+                        <span class="badge badge-sm bg-gradient-success">Editors: 52,536</span>
+                        <span class="badge badge-sm bg-gradient-success">Publications: 11,180,480</span>
                       </div>
                     </td>
                     <td class="align-middle text-center">
                       <!-- Optional actions -->
                     </td>
                   </tr>
-                </tbody>
-                
-                <tbody>
-                  <tr>
+
+                  <!-- LDBC -->
+                  <!-- <tr>
                     <td class="align-middle text-start">
-                      <h6 class="mb-0 text-sm">LDBC</h6> </td>
+                      <h6 class="mb-0 text-sm">LDBC</h6>
+                    </td>
                     <td class="align-middle text-center text-sm">
                       <div class="d-flex justify-content-center">
                         <span class="badge badge-sm bg-gradient-success">Social Network</span>
@@ -113,20 +114,23 @@
                       </div>
                     </td>
                     <td class="align-middle text-center text-sm">
-                      <div class="d-flex justify-content-center">
-                        <span class="badge badge-sm bg-gradient-success">768823072</span>
+                      <div class="d-flex justify-content-center flex-wrap gap-2" style="min-width:180px;">
+                        <span class="badge badge-sm bg-gradient-success">Users: 5,250,123</span>
+                        <span class="badge badge-sm bg-gradient-success">Posts: 18,456,789</span>
+                        <span class="badge badge-sm bg-gradient-success">Comments: 45,987,654</span>
+                        <span class="badge badge-sm bg-gradient-success">Likes: 123,456,789</span>
                       </div>
-                    </td>
+                    </td>-->
                     <td class="align-middle text-center">
                       <!-- Optional actions -->
                     </td>
-                  </tr>
-                </tbody>
+                  </tr> 
 
-                <tbody>
-                  <tr>
+                  <!-- YAGO -->
+                  <!-- <tr>
                     <td class="align-middle text-start">
-                      <h6 class="mb-0 text-sm">YAGO</h6> </td>
+                      <h6 class="mb-0 text-sm">YAGO</h6>
+                    </td>
                     <td class="align-middle text-center text-sm">
                       <div class="d-flex justify-content-center">
                         <span class="badge badge-sm bg-gradient-success">Knowledge Graph</span>
@@ -138,15 +142,17 @@
                       </div>
                     </td>
                     <td class="align-middle text-center text-sm">
-                      <div class="d-flex justify-content-center">
-                        <span class="badge badge-sm bg-gradient-success">123541593
-</span>
+                      <div class="d-flex justify-content-center flex-wrap gap-2" style="min-width:180px;">
+                        <span class="badge badge-sm bg-gradient-success">Entities: 9,312,456</span>
+                        <span class="badge badge-sm bg-gradient-success">Facts: 12,345,678</span>
+                        <span class="badge badge-sm bg-gradient-success">Relations: 1,234,567</span>
                       </div>
-                    </td>
+                    </td> -->
                     <td class="align-middle text-center">
                       <!-- Optional actions -->
                     </td>
                   </tr>
+                  
                 </tbody>
               </table>
             </div>
@@ -155,45 +161,42 @@
       </div>
     </div>
 
-    
   </div>
+  
   <!-- 错误提示模态框 -->
-<div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="alertModalLabel">Error</h5>
-        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-          <span aria-hidden="true">&times;</span>
-        </button>
-      </div>
-      <div class="modal-body">
-        <!-- 错误信息将在这里显示 --> upload failed.
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+  <div class="modal fade" id="alertModal" tabindex="-1" aria-labelledby="alertModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="alertModalLabel">Error</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+          <!-- 错误信息将在这里显示 --> upload failed.
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 
 {% endblock content %}
+
 {% block javascripts %}
     <!-- Bootstrap JS -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script>
       $(document).ready(function() {
-        // 手动为关闭按钮添加点击事件
         $('.close').click(function() {
           $('#alertModal').modal('hide');
         });
-      });
-      $(document).ready(function() {
-        // 为关闭按钮添加点击事件
         $('.btn-secondary[data-dismiss="modal"]').click(function() {
-                $('#alertModal').modal('hide');
-            });
+          $('#alertModal').modal('hide');
+        });
       });
 
       function submitForm() {
@@ -207,21 +210,18 @@
               success: function(response) {
                   if (response.success) {
                       alert("File uploaded successfully!");
-                      // 如果需要，在这里关闭模态框
                       $('#alertModal').modal('hide');
                   } else {
-                      // 显示错误信息
                       $('.modal-body').text(response.error || 'Upload failed.');
                       $('#alertModal').modal('show');
                   }
               },
               error: function() {
-                  // 显示错误信息
                   $('.modal-body').text('An error occurred. Please try again.');
                   $('#alertModal').modal('show');
               }
           });
-          return false; // 防止表单的默认提交行为
+          return false; // 防止表单默认提交
       }
     </script>
 {% endblock %}

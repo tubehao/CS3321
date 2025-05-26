@@ -61,9 +61,9 @@ def get_response():
     
     # 使用初始化后的模型
     pipeline_prompt = current_app.config['MODEL_PIPELINE']
-    # pipeline_chat = current_app.config['MODEL_SOLUTION']
-    # pipeline_pure = current_app.config['MODEL_PURE']
-    # pipeline_visual = current_app.config['MODEL_VISUAL']
+    pipeline_chat = current_app.config['MODEL_SOLUTION']
+    pipeline_pure = current_app.config['MODEL_PURE']
+    pipeline_visual = current_app.config['MODEL_VISUAL']
     
     current_database = current_app.config.get('CURRENT_DATABASE', 'dblp')
     query_prompt = current_app.config['QUERY_PROMPT'][current_database]
@@ -72,7 +72,7 @@ def get_response():
     prompt = f"""Our dataset contains a {query_prompt['type']} stored in a Neo4j database. With node including {query_prompt['label']} and uri. 
     Translate the following natural language query into a Cypher query for Neo4j and wrap the query with '```'. 
     The format of query result should be able to visualize by G6 such as {{"nodes": [], "edges": []}} while all the label and id should be string.
-    for example,{query_prompt['example']}.
+    for example, {query_prompt['example']}. The relation is always named 'AUTHORS' and you should not change it.
     You should always set the limit of the return.
     Natural Language Query: {user_message}\n\n\n\nCypher Query:"""
     
@@ -98,55 +98,55 @@ def get_response():
     # print("###### Query results ######")
     # print(query_results)
     graph_data = query_results[0] if query_results else {}
+    print("###### Graph Data ######")
+    print(graph_data)
 
-    # knowledge = str(graph_data)
-    # result_prompt = f"Knowledge: {knowledge[0:3000]}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
+    knowledge = str(graph_data)
+    result_prompt = f"Knowledge: {knowledge[0:3000]}. Use the knowledge to address the following question. Don't contain it in your answer directly, you can just refer to it. \n\n Question: {user_message}. \n Answer:"
 
-    # solution = get_model_response(pipeline_chat, result_prompt)
+    solution = get_model_response(pipeline_chat, result_prompt)
 
-    # visualize_solution = solution[:2000] if len(solution) > 2000 else solution
-    # visualize_data = get_model_response(pipeline_chat, f"""Change the answer to the format that can be visualized by G6 such as {{
-    #                         "nodes": [{{ "id": "node1" }}, {{ "id": "node2" }}],
-    #                         "edges": [{{ "source": "node1", "target": "node2" }}]
-    #                         }}. your response should be able to convert by eval function in python, answer the data only, don't contain any other symbol. Answer: {visualize_solution}, Graph Data:{str(graph_data)[:2000]}""")
-    # explanation = get_model_response(pipeline_chat, f"Explain the answer and the graph. Answer:{visualize_solution}, Graph Data:{str(visualize_data)[:2000]}")
+    visualize_solution = solution[:2000] if len(solution) > 2000 else solution
+    visualize_data = get_model_response(pipeline_chat, f"""Change the answer to the format that can be visualized by G6: {{
+                            "nodes": [{{ "id": "node1" }}, {{ "id": "node2" }}],
+                            "edges": [{{ "source": "node1", "target": "node2" }}]
+                            }}. your response should be able to convert by eval function in python, answer the data only, don't contain any other symbol. Answer: {visualize_solution}, Graph Data:{str(graph_data)[:2000]}""")
+    explanation = get_model_response(pipeline_chat, f"Explain the answer and the graph. Answer:{visualize_solution}, Graph Data:{str(visualize_data)[:2000]}")
     
-    # print("###### Visualize Data ######")
-    # print(visualize_data)
-    # try:
-    #     if visualize_data.startswith("```json") and visualize_data.endswith("```"):
-    #         visualize_data = visualize_data[7:-3].strip()
-    #     visualize_data_dict = eval(visualize_data)
-    #     # visualize_data_dict = json.loads(visualize_data)
-    #     if isinstance(visualize_data_dict, dict) and all(isinstance(v, list) and all(isinstance(i, dict) for i in v) for v in visualize_data_dict.values()):
-    #         visualize_data = visualize_data_dict
-    #     else:
-    #         raise ValueError("Generated data is not in the expected format.")
-    # except Exception as e:
-    #     print(f"Error parsing visualize_data: {e}")
-    #     visualize_data = {"nodes": [], "edges": []}
-    # print("###### Graph Data ######")
-    # print(graph_data)
+    print("###### Visualize Data ######")
+    print(visualize_data)
+    try:
+        if visualize_data.startswith("```json") and visualize_data.endswith("```"):
+            visualize_data = visualize_data[7:-3].strip()
+        visualize_data_dict = eval(visualize_data)
+        # visualize_data_dict = json.loads(visualize_data)
+        if isinstance(visualize_data_dict, dict) and all(isinstance(v, list) and all(isinstance(i, dict) for i in v) for v in visualize_data_dict.values()):
+            visualize_data = visualize_data_dict
+        else:
+            raise ValueError("Generated data is not in the expected format.")
+    except Exception as e:
+        print(f"Error parsing visualize_data: {e}")
+        visualize_data = {"nodes": [], "edges": []}
     # 保存用户消息和系统响应到会话中
     chat_history = session.get(f'{current_user.id}_chat_history', [])
     chat_history.append({'sender': 'user', 'message': user_message})
     chat_history.append({'sender': 'bot', 'message': {
-        # "solution_part1": solution,
+        "solution_part1": solution,
         "graph_data": graph_data,
-        # "visualize_data": visualize_data,
+        "visualize_data": visualize_data,
         "query": cypher_query,
-        # "explanation": explanation
+        "explanation": explanation
     }})
 
     # 将更新后的历史记录存回 session
     session[f'{current_user.id}_chat_history'] = chat_history
 
     return jsonify({
-        # "solution_part1": solution,
+        "solution_part1": solution,
         "graph_data": graph_data,
-        # "visualize_data": visualize_data,
+        "visualize_data": visualize_data,
         "query" : cypher_query,
-        # "explanation": explanation
+        "explanation": explanation
     })
 
 
@@ -167,7 +167,7 @@ def get_model_response(pipeline, prompt):
     elif "qwen" in current_app.config["MODEL_ID"]:
         # TODO
         response = pipeline.chat.completions.create(
-            model="qwen-turbo", # https://help.aliyun.com/zh/model-studio/getting-started/models
+            model="qwen-max", # https://help.aliyun.com/zh/model-studio/getting-started/models
             messages=[
                 # {'role': 'system', 'content': 'You are a helpful assistant.'},
                 {'role': 'user', 'content': prompt}

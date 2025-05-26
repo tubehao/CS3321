@@ -83,9 +83,9 @@ def initialize_model(app):
     elif "qwen" in model_id:
         api_key = app.config['APIKEY']
         app.config['MODEL_PIPELINE'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
-        # app.config['MODEL_SOLUTION'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
-        # app.config['MODEL_PURE'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
-        # app.config['MODEL_VISUAL'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+        app.config['MODEL_SOLUTION'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+        app.config['MODEL_PURE'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
+        app.config['MODEL_VISUAL'] = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
     else:
         raise ValueError("Unsupported model type. Please use a valid model ID (gpt).")
 
