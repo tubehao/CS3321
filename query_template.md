@@ -15,7 +15,7 @@ collect(DISTINCT {source: a.author_id, target: p.publication_id, label: 'AUTHORS
 MATCH (a:Author)-[:AUTHORS]->(p:Paper)
 WHERE a.name = "Jie Guo 0011"
 WITH a, p
-LIMIT 10
+LIMIT 30
 
 MATCH (p)<-[:AUTHORS]-(co:Author)
 WITH a, p, co
