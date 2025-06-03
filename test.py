@@ -1,6 +1,6 @@
 from openai import OpenAI
 
-api_key = 'sk-1c8588cdb54c4818844e7445eae27cd9'
+api_key = 'sk-TODO'
 
 client = OpenAI(api_key=api_key, base_url="https://dashscope.aliyuncs.com/compatible-mode/v1")
 
